@@ -39,6 +39,11 @@ class OrchestratorStub(object):
         request_serializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.HealthCheckRequest.SerializeToString,
         response_deserializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.HealthCheckResponse.FromString,
     )
+    self.ModelWarmup = channel.unary_unary(
+        "/jetstream_proto.Orchestrator/ModelWarmup",
+        request_serializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.ModelWarmupRequest.SerializeToString,
+        response_deserializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.ModelWarmupResponse.FromString,
+    )
 
 
 class OrchestratorServicer(object):
@@ -56,6 +61,12 @@ class OrchestratorServicer(object):
     context.set_details("Method not implemented!")
     raise NotImplementedError("Method not implemented!")
 
+  def ModelWarmup(self, request, context):
+    """Warms up the model server."""
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details("Method not implemented!")
+    raise NotImplementedError("Method not implemented!")
+
 
 def add_OrchestratorServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -68,6 +79,11 @@ def add_OrchestratorServicer_to_server(servicer, server):
           servicer.HealthCheck,
           request_deserializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.HealthCheckRequest.FromString,
           response_serializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.HealthCheckResponse.SerializeToString,
+      ),
+      "ModelWarmup": grpc.unary_unary_rpc_method_handler(
+          servicer.ModelWarmup,
+          request_deserializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.ModelWarmupRequest.FromString,
+          response_serializer=jetstream_dot_core_dot_proto_dot_jetstream__pb2.ModelWarmupResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
