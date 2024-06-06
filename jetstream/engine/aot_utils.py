@@ -123,10 +123,11 @@ def initialize_prefill_jit_cache(
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
   def compile_prefill(length):
+  def compile_prefill(length):
     metadata = prefill_engine.get_tokenizer()
     vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
     padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.", # pylint: disable=line-too-long
         vocab=vocab,
         max_prefill_length=length,
     )
@@ -225,14 +226,13 @@ def initialize_insert_generate_jit_cache(
     vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
 
     padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",
+        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.", # pylint: disable=line-too-long
         vocab=vocab,
         max_prefill_length=length,
     )
 
     prefill = generate_engine.prefill(
         params=generate_params,
-        existing_prefix=None,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
