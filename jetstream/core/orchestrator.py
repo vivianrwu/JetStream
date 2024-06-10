@@ -766,19 +766,19 @@ class Driver:
         slot, active_request = data
         my_live_requests[slot] = active_request
 
-  def model_warmup(self):
-    try:
-      self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
-          self._prefill_engines,
-          self._generate_engines,
-          self._prefill_params,
-          self._generate_params,
-      )
-    except ValueError as e:
-      print(f"Model warmup encountered an error: {e}")
-      traceback.print_exc()
-      os.kill(os.getpid(), signal.SIGKILL)
-    return self.warmup_enabled
+  # def model_warmup(self):
+  #   try:
+  #     self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
+  #         self._prefill_engines,
+  #         self._generate_engines,
+  #         self._prefill_params,
+  #         self._generate_params,
+  #     )
+  #   except ValueError as e:
+  #     print(f"Model warmup encountered an error: {e}")
+  #     traceback.print_exc()
+  #     os.kill(os.getpid(), signal.SIGKILL)
+  #   return self.warmup_enabled
 
 
 class LLMOrchestrator(jetstream_pb2_grpc.OrchestratorServicer):
@@ -945,29 +945,29 @@ class LLMOrchestrator(jetstream_pb2_grpc.OrchestratorServicer):
     is_live = self._driver.live
     return jetstream_pb2.HealthCheckResponse(is_live=is_live)
 
-  async def ModelWarmup(  # pylint: disable=invalid-overridden-method
-      self,
-      request: jetstream_pb2.ModelWarmupRequest,
-      context: Optional[grpc.aio.ServicerContext] = None,
-  ) -> jetstream_pb2.ModelWarmupResponse:
-    """ModelWarmup."""
-    if context is None:
-      logging.warning(
-          "LLM orchestrator is being used in offline test mode, and will not"
-          " respond to gRPC queries - only direct function calls."
-      )
-    # If model warmup wants to be disabled, and we will disable it.
-    if request.enable is False:
-      self._driver.warmup_enabled = False
-      return jetstream_pb2.ModelWarmupResponse(
-          warmup_enabled=self._driver.warmup_enabled
-      )
+  # async def ModelWarmup(  # pylint: disable=invalid-overridden-method
+  #     self,
+  #     request: jetstream_pb2.ModelWarmupRequest,
+  #     context: Optional[grpc.aio.ServicerContext] = None,
+  # ) -> jetstream_pb2.ModelWarmupResponse:
+  #   """ModelWarmup."""
+  #   if context is None:
+  #     logging.warning(
+  #         "LLM orchestrator is being used in offline test mode, and will not"
+  #         " respond to gRPC queries - only direct function calls."
+  #     )
+  #   # If model warmup wants to be disabled, and we will disable it.
+  #   if request.enable is False:
+  #     self._driver.warmup_enabled = False
+  #     return jetstream_pb2.ModelWarmupResponse(
+  #         warmup_enabled=self._driver.warmup_enabled
+  #     )
 
-    # If model warmup is enabled already and another request is sent to
-    # enable it, we will automatically return, else we will call the
-    # model warmup function.
-    if self._driver.warmup_enabled:
-      warmup_enabled = self._driver.warmup_enabled
-    else:
-      warmup_enabled = self._driver.model_warmup()
-    return jetstream_pb2.ModelWarmupResponse(warmup_enabled=warmup_enabled)
+  #   # If model warmup is enabled already and another request is sent to
+  #   # enable it, we will automatically return, else we will call the
+  #   # model warmup function.
+  #   if self._driver.warmup_enabled:
+  #     warmup_enabled = self._driver.warmup_enabled
+  #   else:
+  #     warmup_enabled = self._driver.model_warmup()
+  #   return jetstream_pb2.ModelWarmupResponse(warmup_enabled=warmup_enabled)
