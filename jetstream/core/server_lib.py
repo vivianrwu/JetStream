@@ -194,7 +194,7 @@ class LLMUtilities(jetstream_pb2_grpc.UtilitiesServicer):
       print(f"Model warmup encountered an error: {e}")
       traceback.print_exc()
       os.kill(os.getpid(), signal.SIGKILL)
-    return self.warmup_enabled
+    return self._driver.warmup_enabled
 
   async def ModelWarmup(
     self,
