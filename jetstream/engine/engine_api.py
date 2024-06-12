@@ -250,5 +250,5 @@ class Engine(abc.ABC):
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     """CPU devices colocated with the engine's accelerators."""
 
-class WarmedUpEngine(engine_api.Engine):
-  def __init__(self, downstream_engine: engine_api.Engine)x``x``
+# class WarmedUpEngine(engine_api.Engine):
+#   def __init__(self, downstream_engine: engine_api.Engine)x``x``
