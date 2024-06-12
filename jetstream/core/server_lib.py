@@ -43,7 +43,7 @@ class JetStreamServer:
   def __init__(
       self, driver: orchestrator.Driver, threads: int, port, credentials
   ):
-    self._executor = futures.ThreadPoolExecutor(max_workers=12)
+    self._executor = futures.ThreadPoolExecutor(max_workers=threads)
 
     self._loop = asyncio.new_event_loop()
     self._loop.set_default_executor(self._executor)
