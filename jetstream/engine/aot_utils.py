@@ -111,7 +111,7 @@ def initialize_prefill_jit_cache(
   logging.info("---------Prefill compilation %d begun.---------", prefill_idx)
 
   prefill_compiled = {}
-  for i in range len(prefill_buckets):
+  for i in range(len(prefill_buckets)):
     compile_prefill(prefill_buckets[i])
 #   with concurrent.futures.ThreadPoolExecutor(
 #       max_workers=len(prefill_buckets)
@@ -226,7 +226,7 @@ def initialize_insert_generate_jit_cache(
   generate_engine.generate_compiled = generate_compiled
 
   insert_compiled = {}
-  for i in range len(prefill_buckets):
+  for i in range(len(prefill_buckets)):
     compile_insert(prefill_buckets[i])
 #   with concurrent.futures.ThreadPoolExecutor(
 #       max_workers=len(prefill_buckets)
