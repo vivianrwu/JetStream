@@ -141,6 +141,7 @@ class Engine(abc.ABC):
   # Compiled generate
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
+  decode_state: DecodeState
 
   @abc.abstractmethod
   def prefill(
@@ -248,3 +249,6 @@ class Engine(abc.ABC):
   @abc.abstractmethod
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     """CPU devices colocated with the engine's accelerators."""
+
+class WarmedUpEngine(engine_api.Engine):
+  def __init__(self, downstream_engine: engine_api.Engine)x``x``

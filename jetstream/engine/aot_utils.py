@@ -151,7 +151,7 @@ def initialize_insert_generate_jit_cache(
   if generate_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(generate_engine.max_prefill_length)
 
-  decode_state = generate_engine.init_decode_state()
+  decode_state = generate_engine.decode_state
 
   def compile_insert(length):
     metadata = generate_engine.get_tokenizer()

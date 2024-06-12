@@ -595,6 +595,7 @@ class Driver:
     generate_timestep = 0
     # State to store things like running kv cache in.
     decode_state = generate_engine.init_decode_state()
+    generate_engine.decode_state = decode_state
 
     generate_params = self._generate_params[idx]
     logging.info("---------Generate params %d loaded.---------", idx)
