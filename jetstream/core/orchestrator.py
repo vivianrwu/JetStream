@@ -605,11 +605,6 @@ class Driver:
     generate_engine.decode_state_live = False
 
     while self.live:
-      if generate_engine.decode_state_live is False:
-        if self.warmup_enabled: 
-          decode_state = generate_engine.init_decode_state_compiled()
-          generate_engine.decode_state_live = True
-
       if (time.time() - time_of_last_print) > 1:
         logging.info(
             "Generate thread making a decision with:"
@@ -676,6 +671,13 @@ class Driver:
             generate_timestep,
         )
         if self.warmup_enabled:
+
+          if generate_engine.decode_state_live is False:
+            logging.info("---------decode state is false.---------")
+            decode_state = generate_engine.init_decode_state_compiled()
+            generate_engine.decode_state_live = True
+            logging.info("---------setting decode state.---------")
+
           decode_state = generate_engine.insert_compiled[
               new_request.padded_token_length
           ](
