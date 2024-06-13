@@ -602,6 +602,7 @@ class Driver:
 
     time_of_last_generate = time.time()
     time_of_last_print = time.time()
+    generate_engine.decode_state_live = False
 
     while self.live:
       if generate_engine.decode_state_live is False:
