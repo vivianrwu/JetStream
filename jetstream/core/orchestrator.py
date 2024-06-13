@@ -594,14 +594,21 @@ class Driver:
     # Keep track of what step tokens were generated at.
     generate_timestep = 0
     # State to store things like running kv cache in.
-    decode_state = generate_engine.init_decode_state()
-    generate_engine.decode_state = decode_state
+    # decode_state = generate.engine.init_decode_state()
+    # generate_engine.decode_state = decode_state
 
     generate_params = self._generate_params[idx]
     logging.info("---------Generate params %d loaded.---------", idx)
+
     time_of_last_generate = time.time()
     time_of_last_print = time.time()
+
     while self.live:
+      if generate_engine.decode_state_live is False:
+        if self.warmup_enabled: 
+          decode_state = generate_engine.init_decode_state_compiled()
+          generate_engine.decode_state_live = True
+
       if (time.time() - time_of_last_print) > 1:
         logging.info(
             "Generate thread making a decision with:"

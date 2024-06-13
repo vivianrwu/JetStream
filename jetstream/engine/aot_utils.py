@@ -41,12 +41,12 @@ def layout_params_and_compile_executables(
     compiled_prefills.append(prefill_compiled)
 
   for i, ge in enumerate(generate_engines):
-    insert_compiled, generate_compiled = initialize_insert_generate_jit_cache(
+    insert_compiled, generate_compiled, init_decode_state_compiled = initialize_insert_generate_jit_cache(
         generate_engine=ge,
         generate_params=generate_params[i],
         generate_idx=i,
     )
-    compiled_inserts_generate.append([insert_compiled, generate_compiled])
+    compiled_inserts_generate.append([insert_compiled, generate_compiled, init_decode_state_compiled])
 
   if compiled_prefills and compiled_inserts_generate:
     return True
@@ -111,12 +111,12 @@ def initialize_prefill_jit_cache(
   logging.info("---------Prefill compilation %d begun.---------", prefill_idx)
 
   prefill_compiled = {}
-  for i in range(len(prefill_buckets)):
-    compile_prefill(prefill_buckets[i])
-#   with concurrent.futures.ThreadPoolExecutor(
-#       max_workers=len(prefill_buckets)
-#   ) as executor:
-#     _ = executor.map(compile_prefill, prefill_buckets)
+#   for i in range(len(prefill_buckets)):
+#     compile_prefill(prefill_buckets[i])
+  with concurrent.futures.ThreadPoolExecutor(
+      max_workers=len(prefill_buckets)
+  ) as executor:
+    _ = executor.map(compile_prefill, prefill_buckets)
 
   prefill_engine.prefill_compiled = prefill_compiled
 
@@ -151,7 +151,8 @@ def initialize_insert_generate_jit_cache(
   if generate_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(generate_engine.max_prefill_length)
 
-  decode_state = generate_engine.decode_state
+#   decode_state = generate_engine.decode_state
+  decode_state = generate_engine.init_decode_state()
 
   def compile_insert(length):
     metadata = generate_engine.get_tokenizer()
@@ -213,6 +214,20 @@ def initialize_insert_generate_jit_cache(
 
     return compiled
 
+  def compile_init_decode_state():
+    logging.info(
+        "---------Init decode state compilation begun.---------"
+    )
+    lowered = jax.jit(generate.engine.init_decode_state).lower()
+    logging.info(
+        "---------Init decode state lowered.---------"
+    )
+    compiled = lowered.compile()
+    logging.info(
+        "---------Init decode state compiled.---------"
+    )
+    return compiled
+
   logging.info(
       "---------Insertion generation compilation %d begun.---------",
       generate_idx,
@@ -226,17 +241,19 @@ def initialize_insert_generate_jit_cache(
   generate_engine.generate_compiled = generate_compiled
 
   insert_compiled = {}
-  for i in range(len(prefill_buckets)):
-    compile_insert(prefill_buckets[i])
-#   with concurrent.futures.ThreadPoolExecutor(
-#       max_workers=len(prefill_buckets)
-#   ) as executor:
-#     _ = list(executor.map(compile_insert, prefill_buckets))
+  with concurrent.futures.ThreadPoolExecutor(
+      max_workers=len(prefill_buckets)
+  ) as executor:
+    _ = list(executor.map(compile_insert, prefill_buckets))
+
+  init_decode_state_compiled = compile_init_decode_state()
 
   generate_engine.insert_compiled = insert_compiled
+  generate_engine.init_decode_state_compiled = init_decode_state_compiled
+
   logging.info(
       "---------Insertion generation compilation %d complete.---------",
       generate_idx,
   )
 
-  return insert_compiled, generate_compiled
+  return insert_compiled, generate_compiled, init_decode_state_compiled

@@ -141,7 +141,8 @@ class Engine(abc.ABC):
   # Compiled generate
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
-  decode_state: DecodeState
+  init_decode_state_compiled: jax.stages.Compiled
+  decode_state_live: bool
 
   @abc.abstractmethod
   def prefill(
