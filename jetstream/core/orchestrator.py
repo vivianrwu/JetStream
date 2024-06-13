@@ -602,7 +602,7 @@ class Driver:
 
     time_of_last_generate = time.time()
     time_of_last_print = time.time()
-    generate_engine.decode_state_live = False
+    # generate_engine.decode_state_live = False
 
     while self.live:
       if (time.time() - time_of_last_print) > 1:
@@ -672,17 +672,17 @@ class Driver:
         )
         if self.warmup_enabled:
 
-          if generate_engine.decode_state_live is False:
-            logging.info("---------decode state is false.---------")
-            decode_state = generate_engine.init_decode_state_compiled()
-            generate_engine.decode_state_live = True
-            logging.info("---------setting decode state.---------")
+          # if generate_engine.decode_state_live is False:
+          #   logging.info("---------decode state is false.---------")
+          #   decode_state = generate_engine.init_decode_state_compiled()
+          #   generate_engine.decode_state_live = True
+          #   logging.info("---------setting decode state.---------")
 
           decode_state = generate_engine.insert_compiled[
               new_request.padded_token_length
           ](
               prefix=new_request.prefill_result,
-              decode_state=decode_state,
+              decode_state=generate_engine.decode_state,
               slot=slot,
           )
         else:
@@ -705,7 +705,7 @@ class Driver:
       # Now we actually take a generate step on requests in the slots.
       if self.warmup_enabled:
         decode_state, sampled_tokens = generate_engine.generate_compiled(
-            params=generate_params, decode_state=decode_state
+            params=generate_params, decode_state=generate_engine.decode_state
         )
       else:
         decode_state, sampled_tokens = generate_engine.generate(

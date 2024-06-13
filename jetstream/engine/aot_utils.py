@@ -153,6 +153,7 @@ def initialize_insert_generate_jit_cache(
 
 #   decode_state = generate_engine.decode_state
   decode_state = generate_engine.init_decode_state()
+  generate_engine.decode_state = decode_state
 
   def compile_insert(length):
     metadata = generate_engine.get_tokenizer()
