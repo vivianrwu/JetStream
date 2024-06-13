@@ -218,7 +218,7 @@ def initialize_insert_generate_jit_cache(
     logging.info(
         "---------Init decode state compilation begun.---------"
     )
-    lowered = jax.jit(generate.engine.init_decode_state).lower()
+    lowered = jax.jit(generate_engine.init_decode_state).lower()
     logging.info(
         "---------Init decode state lowered.---------"
     )
