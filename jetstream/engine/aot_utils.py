@@ -52,6 +52,13 @@ def layout_params_and_compile_executables(
     return True
   return False
 
+def make_shaped_array(
+    t: Any, sharding: None | Any = None
+) -> jax.ShapeDtypeStruct:
+  if hasattr(t, 'sharding'):
+    return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=t.sharding)
+  else:
+    return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=sharding)
 
 def initialize_prefill_jit_cache(
     *,
@@ -78,21 +85,35 @@ def initialize_prefill_jit_cache(
   if prefill_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
-  def compile_prefill(length):
-    metadata = prefill_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
-        max_prefill_length=length,
-    )
+  param_shapes = jax.tree.map(make_shaped_array, prefill_params)
 
+  def compile_prefill(length):
+
+    discrete_tokens, true_length = jnp.ones((length,), dtype=jnp.int32), length
+    token_shapes = jax.tree.map(make_shaped_array, discrete_tokens)
+
+    # metadata = prefill_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
+
+    # lowered = jax.jit(
+    #     prefill_engine.prefill,
+    #     out_shardings=prefill_engine.get_prefix_destination_sharding(),
+    # ).lower(
+    #     params=prefill_params,
+    #     padded_tokens=padded_tokens,
+    #     true_length=true_length,
+    # )
     lowered = jax.jit(
         prefill_engine.prefill,
         out_shardings=prefill_engine.get_prefix_destination_sharding(),
     ).lower(
-        params=prefill_params,
-        padded_tokens=padded_tokens,
+        params=param_shapes,
+        padded_tokens=token_shapes,
         true_length=true_length,
     )
     logging.info(
@@ -151,28 +172,38 @@ def initialize_insert_generate_jit_cache(
   if generate_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(generate_engine.max_prefill_length)
 
-#   decode_state = generate_engine.decode_state
-  decode_state = generate_engine.init_decode_state()
-  generate_engine.decode_state = decode_state
+  decode_state = generate_engine.decode_state.eval_shape()
+  generate_param_shapes = jax.tree.map(make_shaped_array, generate_params)
+#   decode_state = generate_engine.init_decode_state()
+#   generate_engine.decode_state = decode_state
 
   def compile_insert(length):
-    metadata = generate_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
 
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
-        max_prefill_length=length,
-    )
+    # metadata = generate_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
+    discrete_tokens, true_length = jnp.ones((length,), dtype=jnp.int32), length
+    token_shapes = jax.tree.map(make_shaped_array, discrete_tokens)
 
     prefill = generate_engine.prefill(
-        params=generate_params,
-        padded_tokens=padded_tokens,
+        params=generate_param_shapes,
+        padded_tokens=token_shapes,
         true_length=true_length,
     )
 
+    slot_shape = jax.ShapeDtypeStruct(
+        (),
+        jnp.int32,
+        sharding=None,
+    )
+
     lowered = jax.jit(generate_engine.insert).lower(
-        prefix=prefill, decode_state=decode_state, slot=1
+        prefix=prefill, decode_state=decode_state, slot=slot_shape
     )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
@@ -195,7 +226,7 @@ def initialize_insert_generate_jit_cache(
     )
 
     lowered = jax.jit(generate_engine.generate).lower(
-        params=generate_params,
+        params=generate_param_shapes,
         decode_state=decode_state,
     )
     logging.info(
@@ -247,14 +278,14 @@ def initialize_insert_generate_jit_cache(
   ) as executor:
     _ = list(executor.map(compile_insert, prefill_buckets))
 
-  init_decode_state_compiled = compile_init_decode_state()
+#   init_decode_state_compiled = compile_init_decode_state()
 
   generate_engine.insert_compiled = insert_compiled
-  generate_engine.init_decode_state_compiled = init_decode_state_compiled
+#   generate_engine.init_decode_state_compiled = init_decode_state_compiled
 
   logging.info(
       "---------Insertion generation compilation %d complete.---------",
       generate_idx,
   )
 
-  return insert_compiled, generate_compiled, init_decode_state_compiled
+  return insert_compiled, generate_compiled
