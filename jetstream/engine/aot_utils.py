@@ -1,6 +1,7 @@
 """AOT compilation utils."""
 
 import jax
+import jax.numpy as jnp
 import concurrent.futures
 from typing import Any, Optional
 import logging
