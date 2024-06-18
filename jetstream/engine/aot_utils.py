@@ -90,7 +90,7 @@ def initialize_prefill_jit_cache(
 
   def compile_prefill(length):
 
-    discrete_tokens, true_length = jnp.ones((length,), dtype=jnp.int32), length
+    discrete_tokens, true_length = jnp.ones((1,length), dtype=jnp.int32), length
     token_shapes = jax.tree.map(make_shaped_array, discrete_tokens)
 
     # metadata = prefill_engine.get_tokenizer()
@@ -188,7 +188,7 @@ def initialize_insert_generate_jit_cache(
     #     vocab=vocab,
     #     max_prefill_length=length,
     # )
-    discrete_tokens, true_length = jnp.ones((length,), dtype=jnp.int32), length
+    discrete_tokens, true_length = jnp.ones((1,length), dtype=jnp.int32), length
     token_shapes = jax.tree.map(make_shaped_array, discrete_tokens)
 
     prefill = generate_engine.prefill(
