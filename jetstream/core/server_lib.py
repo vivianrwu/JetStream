@@ -175,8 +175,6 @@ def run(
     logging.info("Not starting JAX profiler server: %s", enable_jax_profiler)
   return jetstream_server
 
-  if enable_warmup:
-    driver.
 
     
 
