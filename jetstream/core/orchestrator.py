@@ -251,8 +251,8 @@ class Driver:
     self._metrics_collector = metrics_collector
 
     if enable_warmup:
-      self._prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in self.prefill_engines]
-      self._generate_engines = [engine_api.WarmedUpEngine(ge) for ge in self.generate_engines]
+      self._prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in self._prefill_engines]
+      self._generate_engines = [engine_api.WarmedUpEngine(ge) for ge in self._generate_engines]
 
       self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
               self._prefill_engines,  # pylint: disable=protected-access
