@@ -105,6 +105,7 @@ def run(
     metrics_server_config: config_lib.MetricsServerConfig | None = None,
     enable_jax_profiler: bool = False,
     jax_profiler_port: int = 9999,
+    enable_warmup: bool = True, # todo: change to False later
 ) -> JetStreamServer:
   """Runs a server with a specified config.
 
@@ -119,6 +120,7 @@ def run(
     metrics_server_config: The config to enable Promethus metric server.
     enable_jax_profiler: The flag to enable JAX profiler server.
     jax_profiler_port: The port JAX profiler server (default to 9999).
+    enable_warmup: The flag to enable model server warmup with AOT.
 
   Returns:
     JetStreamServer that wraps the grpc server and orchestrator driver.
@@ -155,6 +157,7 @@ def run(
       jax_padding=jax_padding,
       metrics_collector=metrics_collector,
       is_ray_backend=config.is_ray_backend,
+      enable_warmup=enable_warmup,
   )
   # We default threads to the total number of concurrent allowed decodes,
   # to make sure we can fully saturate the model. Set default minimum to 64.
@@ -171,6 +174,11 @@ def run(
   else:
     logging.info("Not starting JAX profiler server: %s", enable_jax_profiler)
   return jetstream_server
+
+  if enable_warmup:
+    driver.
+
+    
 
 
 def get_devices() -> Any:

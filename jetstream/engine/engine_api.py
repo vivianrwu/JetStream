@@ -134,13 +134,13 @@ class Engine(abc.ABC):
   JetStream efficient serving infrastructure.
   """
 
-  # Compiled prefills
-  prefill_compiled: dict[int, jax.stages.Compiled]
-  # Compiled inserts
-  insert_compiled: dict[int, jax.stages.Compiled]
-  # Compiled generate
-  generate_compiled: jax.stages.Compiled
-  prefill_buckets: list[int]
+  # # Compiled prefills
+  # prefill_compiled: dict[int, jax.stages.Compiled]
+  # # Compiled inserts
+  # insert_compiled: dict[int, jax.stages.Compiled]
+  # # Compiled generate
+  # generate_compiled: jax.stages.Compiled
+  # prefill_buckets: list[int]
 
   @abc.abstractmethod
   def prefill(
@@ -248,3 +248,78 @@ class Engine(abc.ABC):
   @abc.abstractmethod
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     """CPU devices colocated with the engine's accelerators."""
+
+class WarmedUpEngine(Engine):
+  """A wrapper engine of the Engine class.
+
+  WarmedUpEngine defines the AOT warmed up model server engine.
+  """
+
+  def __init__(self, downstream_engine: Engine):
+    # do compile, setup the dicts that maps int to jax Compiled.
+    # Compiled prefills
+    prefill_compiled: dict[int, jax.stages.Compiled]
+    # Compiled inserts
+    insert_compiled: dict[int, jax.stages.Compiled]
+    # Compiled generate
+    generate_compiled: jax.stages.Compiled
+    prefill_buckets: list[int]
+    padded_token_length: int
+
+  def model_warmup(self):
+    try:
+      self._driver.warmup_enabled = (
+          aot_utils.layout_params_and_compile_executables(
+              self._driver._prefill_engines,  # pylint: disable=protected-access
+              self._driver._generate_engines,  # pylint: disable=protected-access
+              self._driver._prefill_params,  # pylint: disable=protected-access
+              self._driver._generate_params,  # pylint: disable=protected-access
+          )
+      )
+    except ValueError as e:
+      print(f"Model warmup encountered an error: {e}")
+      traceback.print_exc()
+      os.kill(os.getpid(), signal.SIGKILL)
+    return self._driver.warmup_enabled
+  
+  def prefill(
+      self,
+      *,
+      params: Params,
+      existing_prefix: Optional[Prefix] = None,
+      padded_tokens: jax.Array,
+      true_length: int,
+  ) -> Prefix:
+    padded_token_length = token_utils.take_nearest_length(
+        self.prefill_buckets, true_length
+    )
+    self.padded_token_length = padded_token_length
+    prefill_result = self.prefill_compiled[padded_token_length](
+        params=prefill_params,
+        padded_tokens=padded_tokens,
+        true_length=true_length,
+    )
+    return prefill_result
+
+  def insert(
+      self,
+      prefix: Prefix,
+      decode_state: DecodeState,
+      slot: int,
+  ) -> DecodeState:
+    decode_state = generate_engine.insert_compiled[
+        self.padded_token_length
+    ](
+        prefix=prefix,
+        decode_state=decode_state,
+        slot=slot,
+    )
+    return decode_state
+    
+  def generate(
+      self, params: Params, decode_state: DecodeState
+  ) -> Tuple[DecodeState, ResultTokens]:
+    decode_state, sampled_tokens = self.generate_compiled(
+        params=params, decode_state=decode_state
+    )
+    return decode_state, sampled_tokens
