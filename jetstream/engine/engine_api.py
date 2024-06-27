@@ -327,15 +327,15 @@ class WarmedUpEngine(Engine):
     return decode_state, sampled_tokens
 
   def load_params(self, *args, **kwargs) -> Params:
-    return super.load_params(*args, **kwargs)
+    return super().load_params(*args, **kwargs)
 
   def get_prefix_destination_sharding(self) -> Any:
-    return super.get_prefix_destination_sharding()
+    return super().get_prefix_destination_sharding()
 
   def get_tokenizer(
       self,
   ) -> tokenizer_pb2.TokenizerParameters:
-    return super.get_tokenizer()
+    return super().get_tokenizer()
 
   # def build_tokenizer(
   #     self,
@@ -345,19 +345,24 @@ class WarmedUpEngine(Engine):
   #   return super.build_tokenizer(metadata)
 
   def init_decode_state(self, *args, **kwargs) -> DecodeState:
-    return super.init_decode_state(*args, **kwargs)
+    return super().init_decode_state(*args, **kwargs)
 
+  @property
   def max_concurrent_decodes(self) -> int:
-    return super.max_concurrent_decodes
+    return super().max_concurrent_decodes
 
+  @property
   def samples_per_slot(self) -> int:
-    return super.samples_per_slot
+    return super().samples_per_slot
 
+  @property
   def max_prefill_length(self) -> int:
     return super().max_prefill_length
 
+  @property
   def mesh(self) -> jax.sharding.Mesh:
     return super().mesh
 
+  @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     return super().colocated_cpus
