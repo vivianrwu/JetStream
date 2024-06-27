@@ -262,6 +262,7 @@ class WarmedUpEngine(Engine):
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
   padded_token_length: int
+  true_length: int
 
   def __init__(self, downstream_engine: Engine):
     # do compile, setup the dicts that maps int to jax Compiled.
@@ -313,10 +314,10 @@ class WarmedUpEngine(Engine):
       slot: int,
   ) -> DecodeState:
     padded_token_length = token_utils.take_nearest_length(
-        self.prefill_buckets, true_length
+        self.prefill_buckets, self.true_length
     )
     self.padded_token_length = padded_token_length
-    
+
     decode_state = self.insert_compiled[
         self.padded_token_length
     ](

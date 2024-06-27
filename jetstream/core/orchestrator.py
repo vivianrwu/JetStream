@@ -686,6 +686,9 @@ class Driver:
         #       slot=slot,
         #   )
         # else:
+
+        if self.warmup_enabled:
+          generate_engine.true_length = new_request.true_length
         decode_state = generate_engine.insert(
             new_request.prefill_result, decode_state, slot=slot
         )
