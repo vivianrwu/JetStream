@@ -20,9 +20,6 @@ def layout_params_and_compile_executables(
       generate_engines: Generate only engines.
       prefill_params: Prefill only params.
       generate_params: Generate only params.
-
-  Returns:
-      bool:
   """
   prefill_engines = prefill_engines if prefill_engines else []
   generate_engines = generate_engines if generate_engines else []

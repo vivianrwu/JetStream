@@ -300,7 +300,7 @@ class WarmedUpEngine(Engine):
     )
     self.padded_token_length = padded_token_length
     prefill_result = self.prefill_compiled[padded_token_length](
-        params=prefill_params,
+        params=params,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
