@@ -266,6 +266,8 @@ class WarmedUpEngine(Engine):
     prefill_buckets: list[int]
     padded_token_length: int
 
+    self._downstream_engine = downstream_engine
+
     # super(Engine, self).__init__()
 
   def model_warmup(self):
@@ -349,20 +351,20 @@ class WarmedUpEngine(Engine):
 
   @property
   def max_concurrent_decodes(self) -> int:
-    return super().max_concurrent_decodes
+    return super().max_concurrent_decodes()
 
   @property
   def samples_per_slot(self) -> int:
-    return super().samples_per_slot
+    return super().samples_per_slot()
 
   @property
   def max_prefill_length(self) -> int:
-    return super().max_prefill_length
+    return super().max_prefill_length()
 
   @property
   def mesh(self) -> jax.sharding.Mesh:
-    return super().mesh
+    return super().mesh()
 
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
-    return super().colocated_cpus
+    return super().colocated_cpus()
