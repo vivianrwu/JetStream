@@ -351,22 +351,22 @@ class WarmedUpEngine(Engine):
 
   @property
   def max_concurrent_decodes(self) -> int:
-    return self._downstream_engine.max_concurrent_decodes()
+    return self._downstream_engine.max_concurrent_decodes
 
   @property
   def samples_per_slot(self) -> int:
-    return self._downstream_engine.samples_per_slot()
+    return self._downstream_engine.samples_per_slot
 
   @property
   def max_prefill_length(self) -> int:
-    return self._downstream_engine.max_prefill_length()
+    return self._downstream_engine.max_prefill_length
 
   @property
   def mesh(self) -> jax.sharding.Mesh:
-    return self._downstream_engine.mesh()
+    return self._downstream_engine.mesh
 
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
-    return self._downstream_engine.colocated_cpus()
+    return self._downstream_engine.colocated_cpus
 
 # i guess the issue here is that because these are also abstractmethods and because we have them here, they think we will override them,,,, leading to NoneType
