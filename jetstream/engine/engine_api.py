@@ -266,6 +266,8 @@ class WarmedUpEngine(Engine):
     prefill_buckets: list[int]
     padded_token_length: int
 
+    # super(Engine, self).__init__()
+
   def model_warmup(self):
     try:
       self._driver.warmup_enabled = (
@@ -323,3 +325,39 @@ class WarmedUpEngine(Engine):
         params=params, decode_state=decode_state
     )
     return decode_state, sampled_tokens
+
+  def load_params(self, *args, **kwargs) -> Params:
+    return super.load_params(*args, **kwargs)
+
+  def get_prefix_destination_sharding(self) -> Any:
+    return super.get_prefix_destination_sharding()
+
+  def get_tokenizer(
+      self,
+  ) -> tokenizer_pb2.TokenizerParameters:
+    return super.get_tokenizer()
+
+  # def build_tokenizer(
+  #     self,
+  #     metadata: tokenizer_pb2.TokenizerParameters,
+  # ) -> Tokenizer:
+  #   """Builds a new tokenizer object and returns it."""
+  #   return super.build_tokenizer(metadata)
+
+  def init_decode_state(self, *args, **kwargs) -> DecodeState:
+    return super.init_decode_state(*args, **kwargs)
+
+  def max_concurrent_decodes(self) -> int:
+    return super.max_concurrent_decodes()
+
+  def samples_per_slot(self) -> int:
+    return super.samples_per_slot()
+
+  def max_prefill_length(self) -> int:
+    return super().max_prefill_length()
+
+  def mesh(self) -> jax.sharding.Mesh:
+    return super().mesh()
+
+  def colocated_cpus(self) -> Union[list[CpuDevices], None]:
+    return super().colocated_cpus()
