@@ -72,11 +72,11 @@ def initialize_prefill_jit_cache(
   prefill_buckets = [
       bucket
       for bucket in prefill_buckets
-      if bucket <= prefill_engine.max_prefill_length
+      if bucket <= prefill_engine.max_prefill_length()
   ]
   prefill_engine.prefill_buckets = prefill_buckets
-  if prefill_engine.max_prefill_length not in prefill_buckets:
-    prefill_buckets.append(prefill_engine.max_prefill_length)
+  if prefill_engine.max_prefill_length() not in prefill_buckets:
+    prefill_buckets.append(prefill_engine.max_prefill_length())
 
   def compile_prefill(length):
     metadata = prefill_engine.get_tokenizer()
@@ -143,11 +143,11 @@ def initialize_insert_generate_jit_cache(
   prefill_buckets = [
       bucket
       for bucket in prefill_buckets
-      if bucket <= generate_engine.max_prefill_length
+      if bucket <= generate_engine.max_prefill_length()
   ]
   generate_engine.prefill_buckets = prefill_buckets
-  if generate_engine.max_prefill_length not in prefill_buckets:
-    prefill_buckets.append(generate_engine.max_prefill_length)
+  if generate_engine.max_prefill_length() not in prefill_buckets:
+    prefill_buckets.append(generate_engine.max_prefill_length())
 
   decode_state = generate_engine.init_decode_state()
 
