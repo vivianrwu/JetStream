@@ -255,16 +255,17 @@ class WarmedUpEngine(Engine):
   WarmedUpEngine defines the AOT warmed up model server engine.
   """
 
+  prefill_compiled: dict[int, jax.stages.Compiled]
+  # Compiled inserts
+  insert_compiled: dict[int, jax.stages.Compiled]
+  # Compiled generate
+  generate_compiled: jax.stages.Compiled
+  prefill_buckets: list[int]
+  padded_token_length: int
+
   def __init__(self, downstream_engine: Engine):
     # do compile, setup the dicts that maps int to jax Compiled.
     # Compiled prefills
-    prefill_compiled: dict[int, jax.stages.Compiled]
-    # Compiled inserts
-    insert_compiled: dict[int, jax.stages.Compiled]
-    # Compiled generate
-    generate_compiled: jax.stages.Compiled
-    prefill_buckets: list[int]
-    padded_token_length: int
 
     self._downstream_engine = downstream_engine
 
