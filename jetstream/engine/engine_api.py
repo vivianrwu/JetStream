@@ -348,16 +348,16 @@ class WarmedUpEngine(Engine):
     return super.init_decode_state(*args, **kwargs)
 
   def max_concurrent_decodes(self) -> int:
-    return super.max_concurrent_decodes()
+    return super.max_concurrent_decodes
 
   def samples_per_slot(self) -> int:
-    return super.samples_per_slot()
+    return super.samples_per_slot
 
   def max_prefill_length(self) -> int:
-    return super().max_prefill_length()
+    return super().max_prefill_length
 
   def mesh(self) -> jax.sharding.Mesh:
-    return super().mesh()
+    return super().mesh
 
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
-    return super().colocated_cpus()
+    return super().colocated_cpus
