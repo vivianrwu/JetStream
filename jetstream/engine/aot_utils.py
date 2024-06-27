@@ -8,8 +8,8 @@ from jetstream.engine import engine_api, token_utils
 
 
 def layout_params_and_compile_executables(
-    prefill_engines: Optional[list[engine_api.Engine]] = None,
-    generate_engines: Optional[list[engine_api.Engine]] = None,
+    prefill_engines: Optional[list[engine_api.WarmedUpEngine]] = None,
+    generate_engines: Optional[list[engine_api.WarmedUpEngine]] = None,
     prefill_params: Optional[list[Any]] = None,
     generate_params: Optional[list[Any]] = None,
 ) -> bool:
@@ -55,7 +55,7 @@ def layout_params_and_compile_executables(
 
 def initialize_prefill_jit_cache(
     *,
-    prefill_engine: engine_api.Engine,
+    prefill_engine: engine_api.WarmedUpEngine,
     prefill_params: Any,
     prefill_idx: int,
 ):
@@ -88,7 +88,7 @@ def initialize_prefill_jit_cache(
     )
 
     lowered = jax.jit(
-        prefill_engine.prefill,
+        prefill_engine._downstream_engine.prefill,
         out_shardings=prefill_engine.get_prefix_destination_sharding(),
     ).lower(
         params=prefill_params,
@@ -127,7 +127,7 @@ def initialize_prefill_jit_cache(
 
 def initialize_insert_generate_jit_cache(
     *,
-    generate_engine: engine_api.Engine,
+    generate_engine: engine_api.WarmedUpEngine,
     generate_params: Any,
     generate_idx: int,
 ):
@@ -161,13 +161,13 @@ def initialize_insert_generate_jit_cache(
         max_prefill_length=length,
     )
 
-    prefill = generate_engine.prefill(
+    prefill = generate_engine._downstream_engine.prefill(
         params=generate_params,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
 
-    lowered = jax.jit(generate_engine.insert).lower(
+    lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
         prefix=prefill, decode_state=decode_state, slot=1
     )
     logging.info(
@@ -190,7 +190,7 @@ def initialize_insert_generate_jit_cache(
         "---------Generate compilation %d begun.---------", generate_idx
     )
 
-    lowered = jax.jit(generate_engine.generate).lower(
+    lowered = jax.jit(generate_engine._downstream_engine.generate).lower(
         params=generate_params,
         decode_state=decode_state,
     )
