@@ -312,7 +312,7 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
-    decode_state = generate_engine.insert_compiled[
+    decode_state = self.insert_compiled[
         self.padded_token_length
     ](
         prefix=prefix,
