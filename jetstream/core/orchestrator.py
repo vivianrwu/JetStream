@@ -93,7 +93,7 @@ from jetstream.core.proto import jetstream_pb2
 from jetstream.core.proto import jetstream_pb2_grpc
 from jetstream.core.utils import async_multifuture
 from jetstream.core.utils.return_sample import ReturnSample
-from jetstream.engine import engine_api, tokenizer_api, token_utils
+from jetstream.engine import engine_api, tokenizer_api, token_utils, aot_utils
 from jetstream.core.metrics.prometheus import JetstreamMetricsCollector
 import numpy as np
 
