@@ -329,15 +329,15 @@ class WarmedUpEngine(Engine):
     return decode_state, sampled_tokens
 
   def load_params(self, *args, **kwargs) -> Params:
-    return super().load_params(*args, **kwargs)
+    return self._downstream_engine.load_params(*args, **kwargs)
 
   def get_prefix_destination_sharding(self) -> Any:
-    return super().get_prefix_destination_sharding()
+    return self._downstream_engine.get_prefix_destination_sharding()
 
   def get_tokenizer(
       self,
   ) -> tokenizer_pb2.TokenizerParameters:
-    return super().get_tokenizer()
+    return self._downstream_engine.get_tokenizer()
 
   # def build_tokenizer(
   #     self,
@@ -347,24 +347,26 @@ class WarmedUpEngine(Engine):
   #   return super.build_tokenizer(metadata)
 
   def init_decode_state(self, *args, **kwargs) -> DecodeState:
-    return super().init_decode_state(*args, **kwargs)
+    return self._downstream_engine.init_decode_state(*args, **kwargs)
 
   @property
   def max_concurrent_decodes(self) -> int:
-    return super().max_concurrent_decodes()
+    return self._downstream_engine.max_concurrent_decodes()
 
   @property
   def samples_per_slot(self) -> int:
-    return super().samples_per_slot()
+    return self._downstream_engine.samples_per_slot()
 
   @property
   def max_prefill_length(self) -> int:
-    return super().max_prefill_length()
+    return self._downstream_engine.max_prefill_length()
 
   @property
   def mesh(self) -> jax.sharding.Mesh:
-    return super().mesh()
+    return self._downstream_engine.mesh()
 
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
-    return super().colocated_cpus()
+    return self._downstream_engine.colocated_cpus()
+
+# i guess the issue here is that because these are also abstractmethods and because we have them here, they think we will override them,,,, leading to NoneType
