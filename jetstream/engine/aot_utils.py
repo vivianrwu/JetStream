@@ -45,7 +45,7 @@ def layout_params_and_compile_executables(
 
   for i, ge in enumerate(generate_engines):
     insert_compiled, generate_compiled = initialize_insert_generate_jit_cache(
-        prefill_engine=any_prefill_engine
+        prefill_engine=any_prefill_engine,
         generate_engine=ge,
         prefill_params=any_prefill_params
         generate_params=generate_params[i],
