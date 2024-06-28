@@ -194,7 +194,7 @@ def initialize_insert_generate_jit_cache(
 
     batch_size = generate_engine.max_concurrent_decodes
 
-    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
+    padded_tokens, true_length = jnp.ones((batch_size, 1, length, 1), dtype='int32'), length
     logging.info(padded_tokens)
 
     prefill = generate_engine._downstream_engine.prefill(
