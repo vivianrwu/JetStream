@@ -27,7 +27,7 @@ import numpy as np
 
 from jetstream.engine import tokenizer_pb2
 from jetstream.engine import token_utils
-from jetstream.core import orchestrator.ActiveRequest as ActiveRequest
+# from jetstream.core import orchestrator.ActiveRequest as ActiveRequest
 
 
 # The model parameters - their partitioning will be unique for different prefill
