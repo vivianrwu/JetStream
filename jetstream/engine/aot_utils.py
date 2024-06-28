@@ -77,14 +77,15 @@ def initialize_prefill_jit_cache(
 
   def compile_prefill(length):
 
-    metadata = prefill_engine.get_tokenizer()
-    tokenizer = prefill_engine.build_tokenizer(metadata)
-    padded_tokens, true_length = tokenizer.encode(
-        jnp.ones((1, length), dtype='int32'),
-        is_bos=True,
-        max_prefill_length=length,
-        jax_padding=True,
-    )
+    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    # metadata = prefill_engine.get_tokenizer()
+    # tokenizer = prefill_engine.build_tokenizer(metadata)
+    # padded_tokens, true_length = tokenizer.encode(
+    #     jnp.ones((1, length), dtype='int32'),
+    #     is_bos=True,
+    #     max_prefill_length=length,
+    #     jax_padding=True,
+    # )
     # metadata = prefill_engine.get_tokenizer()
     # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
     # padded_tokens, true_length = token_utils.tokenize_and_pad(
@@ -159,14 +160,15 @@ def initialize_insert_generate_jit_cache(
 
   def compile_insert(length):
 
-    metadata = generate_engine.get_tokenizer()
-    tokenizer = generate_engine.build_tokenizer(metadata)
-    padded_tokens, true_length = tokenizer.encode(
-        jnp.ones((1, length), dtype='int32')
-        is_bos=True,
-        max_prefill_length=length,
-        jax_padding=True,
-    )
+    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    # metadata = generate_engine.get_tokenizer()
+    # tokenizer = generate_engine.build_tokenizer(metadata)
+    # padded_tokens, true_length = tokenizer.encode(
+    #     jnp.ones((1, length), dtype='int32')
+    #     is_bos=True,
+    #     max_prefill_length=length,
+    #     jax_padding=True,
+    # )
     # metadata = generate_engine.get_tokenizer()
     # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
 
