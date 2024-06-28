@@ -107,7 +107,7 @@ def initialize_prefill_jit_cache(
     # logging.info(type(padded_tokens))
     batch_size = prefill_engine.max_concurrent_decodes
 
-    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
+    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
     logging.info(padded_tokens)
 
     lowered = jax.jit(
@@ -203,7 +203,7 @@ def initialize_insert_generate_jit_cache(
 
     batch_size = generate_engine.max_concurrent_decodes
 
-    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
+    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
     logging.info(padded_tokens)
 
     prefill = prefill_engine._downstream_engine.prefill(
