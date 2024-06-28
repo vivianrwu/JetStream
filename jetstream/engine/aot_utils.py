@@ -27,10 +27,15 @@ def layout_params_and_compile_executables(
   prefill_params = prefill_params if prefill_params else []
   generate_params = generate_params if generate_params else []
 
+  any_prefill_engine = None
+  any_prefill_params = None
+
   compiled_prefills = []
   compiled_inserts_generate = []
 
   for i, pe in enumerate(prefill_engines):
+    any_prefill_engine = pe
+    any_prefill_params = prefill_params[i]
     prefill_compiled = initialize_prefill_jit_cache(
         prefill_engine=pe,
         prefill_params=prefill_params[i],
@@ -40,7 +45,9 @@ def layout_params_and_compile_executables(
 
   for i, ge in enumerate(generate_engines):
     insert_compiled, generate_compiled = initialize_insert_generate_jit_cache(
+        prefill_engine=any_prefill_engine
         generate_engine=ge,
+        prefill_params=any_prefill_params
         generate_params=generate_params[i],
         generate_idx=i,
     )
@@ -143,7 +150,9 @@ def initialize_prefill_jit_cache(
 
 def initialize_insert_generate_jit_cache(
     *,
+    prefill_engine: engine_api.WarmedUpEngine,
     generate_engine: engine_api.WarmedUpEngine,
+    prefill_params: Any,
     generate_params: Any,
     generate_idx: int,
 ):
@@ -194,11 +203,11 @@ def initialize_insert_generate_jit_cache(
 
     batch_size = generate_engine.max_concurrent_decodes
 
-    padded_tokens, true_length = jnp.ones((batch_size, 1, length, 1), dtype='int32'), length
+    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
     logging.info(padded_tokens)
 
-    prefill = generate_engine._downstream_engine.prefill(
-        params=generate_params,
+    prefill = prefill_engine._downstream_engine.prefill(
+        params=prefill_params,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
