@@ -510,6 +510,13 @@ class Driver:
       )
       request.true_length = true_length
 
+      if self.warmup_enabled:
+        padded_token_length = token_utils.take_nearest_length(
+            prefill_engine.prefill_buckets, true_length
+        )
+        prefill_engine.padded_token_length = padded_token_length
+        request.padded_token_length = padded_token_length
+
       # Compute new kv cache for the prefill_content.
       # if self.warmup_enabled:
       #   padded_token_length = token_utils.take_nearest_length(
@@ -689,6 +696,8 @@ class Driver:
 
         if self.warmup_enabled:
           generate_engine.true_length = new_request.true_length
+          generate_engine.padded_token_length = new_request.padded_token_length
+          
         decode_state = generate_engine.insert(
             new_request.prefill_result, decode_state, slot=slot
         )

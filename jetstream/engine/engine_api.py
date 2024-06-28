@@ -27,6 +27,7 @@ import numpy as np
 
 from jetstream.engine import tokenizer_pb2
 from jetstream.engine import token_utils
+from jetstream.core import orchestrator.ActiveRequest as ActiveRequest
 
 
 # The model parameters - their partitioning will be unique for different prefill
@@ -261,6 +262,7 @@ class WarmedUpEngine(Engine):
   # Compiled generate
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
+  active_request: ActiveRequest
   padded_token_length: int
   true_length: int
 
@@ -296,11 +298,11 @@ class WarmedUpEngine(Engine):
       padded_tokens: jax.Array,
       true_length: int,
   ) -> Prefix:
-    padded_token_length = token_utils.take_nearest_length(
-        self.prefill_buckets, true_length
-    )
-    self.padded_token_length = padded_token_length
-    prefill_result = self.prefill_compiled[padded_token_length](
+    # padded_token_length = token_utils.take_nearest_length(
+    #     self.prefill_buckets, true_length
+    # )
+    # self.padded_token_length = padded_token_length
+    prefill_result = self.prefill_compiled[self.padded_token_length](
         params=params,
         padded_tokens=padded_tokens,
         true_length=true_length,
@@ -313,10 +315,10 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
-    padded_token_length = token_utils.take_nearest_length(
-        self.prefill_buckets, self.true_length
-    )
-    self.padded_token_length = padded_token_length
+    # padded_token_length = token_utils.take_nearest_length(
+    #     self.prefill_buckets, self.true_length
+    # )
+    # self.padded_token_length = padded_token_length
 
     decode_state = self.insert_compiled[
         self.padded_token_length
