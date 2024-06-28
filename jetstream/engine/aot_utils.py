@@ -78,7 +78,7 @@ def initialize_prefill_jit_cache(
 
   def compile_prefill(length):
 
-    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    # padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
     # metadata = prefill_engine.get_tokenizer()
     # tokenizer = prefill_engine.build_tokenizer(metadata)
     # padded_tokens, true_length = tokenizer.encode(
@@ -87,19 +87,20 @@ def initialize_prefill_jit_cache(
     #     max_prefill_length=length,
     #     jax_padding=True,
     # )
-    metadata = prefill_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
-        max_prefill_length=length,
-    )
+    # metadata = prefill_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
 
-    logging.info("length=%d", length)
-    logging.info(padded_tokens)
-    logging.info(type(padded_tokens))
+    # logging.info("length=%d", length)
+    # logging.info(padded_tokens)
+    # logging.info(type(padded_tokens))
+    batch_size = prefill_engine.max_concurrent_decodes
 
-    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
     logging.info(padded_tokens)
 
     lowered = jax.jit(
@@ -168,7 +169,7 @@ def initialize_insert_generate_jit_cache(
 
   def compile_insert(length):
 
-    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    # padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
     # metadata = generate_engine.get_tokenizer()
     # tokenizer = generate_engine.build_tokenizer(metadata)
     # padded_tokens, true_length = tokenizer.encode(
@@ -177,21 +178,23 @@ def initialize_insert_generate_jit_cache(
     #     max_prefill_length=length,
     #     jax_padding=True,
     # )
-    metadata = generate_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+    # metadata = generate_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
 
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
-        "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
-        max_prefill_length=length,
-    )
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
 
 
-    logging.info("length=%d", length)
-    logging.info(padded_tokens)
-    logging.info(type(padded_tokens))
+    # logging.info("length=%d", length)
+    # logging.info(padded_tokens)
+    # logging.info(type(padded_tokens))
 
-    padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
+    batch_size = generate_engine.max_concurrent_decodes
+
+    padded_tokens, true_length = jnp.ones((batch_size, length), dtype='int32'), length
     logging.info(padded_tokens)
 
     prefill = generate_engine._downstream_engine.prefill(
