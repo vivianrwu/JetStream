@@ -262,7 +262,6 @@ class WarmedUpEngine(Engine):
   # Compiled generate
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
-  active_request: ActiveRequest
   padded_token_length: int
   true_length: int
 
