@@ -76,13 +76,22 @@ def initialize_prefill_jit_cache(
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
   def compile_prefill(length):
+
     metadata = prefill_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
+    tokenizer = prefill_engine.build_tokenizer(metadata)
+    padded_tokens, true_length = tokenizer.encode(
         "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
+        is_bos=True,
         max_prefill_length=length,
+        jax_padding=True,
     )
+    # metadata = prefill_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
 
     lowered = jax.jit(
         prefill_engine._downstream_engine.prefill,
@@ -149,14 +158,23 @@ def initialize_insert_generate_jit_cache(
   decode_state = generate_engine.init_decode_state()
 
   def compile_insert(length):
-    metadata = generate_engine.get_tokenizer()
-    vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
 
-    padded_tokens, true_length = token_utils.tokenize_and_pad(
+    metadata = generate_engine.get_tokenizer()
+    tokenizer = generate_engine.build_tokenizer(metadata)
+    padded_tokens, true_length = tokenizer.encode(
         "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
-        vocab=vocab,
+        is_bos=True,
         max_prefill_length=length,
+        jax_padding=True,
     )
+    # metadata = generate_engine.get_tokenizer()
+    # vocab = token_utils.load_vocab(metadata.path, metadata.extra_ids)
+
+    # padded_tokens, true_length = token_utils.tokenize_and_pad(
+    #     "Example text, often referred to as lorem ipsum, is placeholder content used by designers and developers in the layout of documents and websites. It's a scrambled Latin passage that mimics the rhythm and flow of real text, allowing for accurate visualization of fonts, spacing, and formatting. This nonsensical text helps maintain focus on the visual aspects without distraction from actual content. Lorem ipsum has become a standard in the industry, appearing in countless projects as a temporary stand-in before the final text is incorporated.",  # pylint: disable=line-too-long
+    #     vocab=vocab,
+    #     max_prefill_length=length,
+    # )
 
     prefill = generate_engine._downstream_engine.prefill(
         params=generate_params,

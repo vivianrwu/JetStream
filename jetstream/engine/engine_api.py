@@ -347,12 +347,12 @@ class WarmedUpEngine(Engine):
   ) -> tokenizer_pb2.TokenizerParameters:
     return self._downstream_engine.get_tokenizer()
 
-  # def build_tokenizer(
-  #     self,
-  #     metadata: tokenizer_pb2.TokenizerParameters,
-  # ) -> Tokenizer:
-  #   """Builds a new tokenizer object and returns it."""
-  #   return super.build_tokenizer(metadata)
+  def build_tokenizer(
+      self,
+      metadata: tokenizer_pb2.TokenizerParameters,
+  ) -> Tokenizer:
+    """Builds a new tokenizer object and returns it."""
+    return self._downstream_engine.build_tokenizer(metadata)
 
   def init_decode_state(self, *args, **kwargs) -> DecodeState:
     return self._downstream_engine.init_decode_state(*args, **kwargs)
