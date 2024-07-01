@@ -256,6 +256,7 @@ class WarmedUpEngine(Engine):
   WarmedUpEngine defines the AOT warmed up model server engine.
   """
 
+  # Compiled prefills
   prefill_compiled: dict[int, jax.stages.Compiled]
   # Compiled inserts
   insert_compiled: dict[int, jax.stages.Compiled]
@@ -265,29 +266,9 @@ class WarmedUpEngine(Engine):
   padded_token_length: int
   true_length: int
 
-  def __init__(self, downstream_engine: Engine):
-    # do compile, setup the dicts that maps int to jax Compiled.
-    # Compiled prefills
-
+  def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
 
-    # super(Engine, self).__init__()
-
-  def model_warmup(self):
-    try:
-      self._driver.warmup_enabled = (
-          aot_utils.layout_params_and_compile_executables(
-              self._driver._prefill_engines,  # pylint: disable=protected-access
-              self._driver._generate_engines,  # pylint: disable=protected-access
-              self._driver._prefill_params,  # pylint: disable=protected-access
-              self._driver._generate_params,  # pylint: disable=protected-access
-          )
-      )
-    except ValueError as e:
-      print(f"Model warmup encountered an error: {e}")
-      traceback.print_exc()
-      os.kill(os.getpid(), signal.SIGKILL)
-    return self._driver.warmup_enabled
   
   def prefill(
       self,
@@ -297,10 +278,7 @@ class WarmedUpEngine(Engine):
       padded_tokens: jax.Array,
       true_length: int,
   ) -> Prefix:
-    # padded_token_length = token_utils.take_nearest_length(
-    #     self.prefill_buckets, true_length
-    # )
-    # self.padded_token_length = padded_token_length
+
     prefill_result = self.prefill_compiled[self.padded_token_length](
         params=params,
         padded_tokens=padded_tokens,
@@ -314,11 +292,7 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
-    # padded_token_length = token_utils.take_nearest_length(
-    #     self.prefill_buckets, self.true_length
-    # )
-    # self.padded_token_length = padded_token_length
-
+  
     decode_state = self.insert_compiled[
         self.padded_token_length
     ](
@@ -376,5 +350,3 @@ class WarmedUpEngine(Engine):
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     return self._downstream_engine.colocated_cpus
-
-# i guess the issue here is that because these are also abstractmethods and because we have them here, they think we will override them,,,, leading to NoneType
