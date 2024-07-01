@@ -527,11 +527,14 @@ class Driver:
       request.true_length = true_length
 
       if self.warmup_enabled:
+        logging.info("Model warmup is enabled")
         padded_token_length = token_utils.take_nearest_length(
             prefill_engine.prefill_buckets, true_length
         )
         prefill_engine.padded_token_length = padded_token_length
         request.padded_token_length = padded_token_length
+      else:
+        logging.info("Model warmup is disabled")
 
       # Compute new kv cache for the prefill_content.
       prefill_result, first_token = prefill_engine.prefill(
