@@ -250,6 +250,7 @@ class Driver:
     self._interleaved_mode = interleaved_mode
     self._metrics_collector = metrics_collector
 
+    self.warmup_enabled = False
     if enable_model_warmup:
       self._prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in self._prefill_engines]
       self._generate_engines = [engine_api.WarmedUpEngine(ge) for ge in self._generate_engines]

@@ -277,14 +277,14 @@ class WarmedUpEngine(Engine):
       existing_prefix: Optional[Prefix] = None,
       padded_tokens: jax.Array,
       true_length: int,
-  ) -> Prefix:
+  ) -> Tuple[Prefix, ResultTokens]:
 
-    prefill_result = self.prefill_compiled[self.padded_token_length](
+    prefill_result, first_token = self.prefill_compiled[self.padded_token_length](
         params=params,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
-    return prefill_result
+    return prefill_result, first_token
 
   def insert(
       self,
