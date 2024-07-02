@@ -226,6 +226,7 @@ class Driver:
       jax_padding: bool = True,
       metrics_collector: JetstreamMetricsCollector | None = None,
       is_ray_backend: bool = False,
+      enable_model_warmup: bool = False,
   ):
     if prefill_engines is None:
       prefill_engines = []
@@ -247,6 +248,28 @@ class Driver:
     self._generate_params = generate_params
     self._interleaved_mode = interleaved_mode
     self._metrics_collector = metrics_collector
+
+    self.warmup_enabled = False
+    if enable_model_warmup:
+      self._prefill_engines = [
+          engine_api.WarmedUpEngine(pe) for pe in self._prefill_engines
+      ]
+      self._generate_engines = [
+          engine_api.WarmedUpEngine(ge) for ge in self._generate_engines
+      ]
+
+      try:
+        self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
+            self._prefill_engines,  # pylint: disable=protected-access
+            self._generate_engines,  # pylint: disable=protected-access
+            self._prefill_params,  # pylint: disable=protected-access
+            self._generate_params,  # pylint: disable=protected-access
+        )
+
+      except ValueError as e:
+        print(f"Model warmup encountered an error: {e}")
+        traceback.print_exc()
+        os.kill(os.getpid(), signal.SIGKILL)
 
     # Stages 1-4 represent the life cycle of a request.
     # Stage 1
@@ -387,7 +410,6 @@ class Driver:
         )
     )
     self.live = True
-    self.warmup_enabled = False
     self._is_ray_backend = is_ray_backend
     # Start all threads
     for t in self._all_threads:
@@ -513,18 +535,13 @@ class Driver:
         padded_token_length = token_utils.take_nearest_length(
             prefill_engine.prefill_buckets, true_length
         )
+        prefill_engine.padded_token_length = padded_token_length
         request.padded_token_length = padded_token_length
-        prefill_result = prefill_engine.prefill_compiled[padded_token_length](
-            params=prefill_params,
-            padded_tokens=padded_tokens,
-            true_length=true_length,
-        )
-      else:
-        prefill_result, first_token = prefill_engine.prefill(
-            params=prefill_params,
-            padded_tokens=padded_tokens,
-            true_length=true_length,
-        )
+      prefill_result, first_token = prefill_engine.prefill(
+          params=prefill_params,
+          padded_tokens=padded_tokens,
+          true_length=true_length,
+      )
 
       request.prefill_result = prefill_result
 
@@ -688,18 +705,14 @@ class Driver:
             slot,
             generate_timestep,
         )
+
         if self.warmup_enabled:
-          decode_state = generate_engine.insert_compiled[
-              new_request.padded_token_length
-          ](
-              prefix=new_request.prefill_result,
-              decode_state=decode_state,
-              slot=slot,
-          )
-        else:
-          decode_state = generate_engine.insert(
-              new_request.prefill_result, decode_state, slot=slot
-          )
+          generate_engine.true_length = new_request.true_length
+          generate_engine.padded_token_length = new_request.padded_token_length
+
+        decode_state = generate_engine.insert(
+            new_request.prefill_result, decode_state, slot=slot
+        )
         delete_pytree(new_request.prefill_result)
         new_request.generate_timestep_added = generate_timestep
         new_request.complete = np.zeros(
@@ -714,14 +727,9 @@ class Driver:
       ), "At this point we must have some requests inserted into the slots."
 
       # Now we actually take a generate step on requests in the slots.
-      if self.warmup_enabled:
-        decode_state, sampled_tokens = generate_engine.generate_compiled(
-            params=generate_params, decode_state=decode_state
-        )
-      else:
-        decode_state, sampled_tokens = generate_engine.generate(
-            generate_params, decode_state
-        )
+      decode_state, sampled_tokens = generate_engine.generate(
+          generate_params, decode_state
+      )
       sampled_tokens.copy_to_host_async()
       # Respond to detokenization backpressure.
       my_detokenize_backlog.put((generate_timestep, sampled_tokens), block=True)
@@ -812,20 +820,6 @@ class Driver:
         # We want to update a slot with the new channel.
         slot, active_request = data
         my_live_requests[slot] = active_request
-
-  def model_warmup(self):
-    try:
-      self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
-          self._prefill_engines,
-          self._generate_engines,
-          self._prefill_params,
-          self._generate_params,
-      )
-    except ValueError as e:
-      print(f"Model warmup encountered an error: {e}")
-      traceback.print_exc()
-      os.kill(os.getpid(), signal.SIGKILL)
-    return self.warmup_enabled
 
 
 class LLMOrchestrator(jetstream_pb2_grpc.OrchestratorServicer):
@@ -991,30 +985,3 @@ class LLMOrchestrator(jetstream_pb2_grpc.OrchestratorServicer):
       )
     is_live = self._driver.live
     return jetstream_pb2.HealthCheckResponse(is_live=is_live)
-
-  async def ModelWarmup(  # pylint: disable=invalid-overridden-method
-      self,
-      request: jetstream_pb2.ModelWarmupRequest,
-      context: Optional[grpc.aio.ServicerContext] = None,
-  ) -> jetstream_pb2.ModelWarmupResponse:
-    """ModelWarmup."""
-    if context is None:
-      logging.warning(
-          "LLM orchestrator is being used in offline test mode, and will not"
-          " respond to gRPC queries - only direct function calls."
-      )
-    # If model warmup wants to be disabled, and we will disable it.
-    if request.enable is False:
-      self._driver.warmup_enabled = False
-      return jetstream_pb2.ModelWarmupResponse(
-          warmup_enabled=self._driver.warmup_enabled
-      )
-
-    # If model warmup is enabled already and another request is sent to
-    # enable it, we will automatically return, else we will call the
-    # model warmup function.
-    if self._driver.warmup_enabled:
-      warmup_enabled = self._driver.warmup_enabled
-    else:
-      warmup_enabled = self._driver.model_warmup()
-    return jetstream_pb2.ModelWarmupResponse(warmup_enabled=warmup_enabled)

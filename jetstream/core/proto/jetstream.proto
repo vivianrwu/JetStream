@@ -23,22 +23,6 @@ service Orchestrator {
   rpc Decode(DecodeRequest) returns (stream DecodeResponse) {}
   // Checks if the model server is live.
   rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {}
-  // Warms up the model server.
-  rpc ModelWarmup(ModelWarmupRequest) returns (ModelWarmupResponse) {}
-}
-
-// Utility RPCs for JetStream
-
-service Utilities {
-  // Warms up the model server.
-  rpc ModelWarmup(ModelWarmupRequest) returns (ModelWarmupResponse) {}
-}
-
-// Utility RPCs for JetStream
-
-service Utilities {
-  // Warms up the model server.
-  rpc ModelWarmup(ModelWarmupRequest) returns (ModelWarmupResponse) {}
 }
 
 message DecodeRequest {
@@ -99,34 +83,4 @@ message HealthCheckRequest {}
 message HealthCheckResponse {
   // Denotes whether the model server is live
   bool is_live = 1;
-}
-
-message ModelWarmupRequest {
-  // Denotes whether to enable model server warmup.
-  bool enable = 1;
-}
-
-message ModelWarmupResponse {
-  // Whether model server warmup is currently enabled.
-  bool warmup_enabled = 1;
-}
-
-message ModelWarmupRequest {
-  // Denotes whether to enable model server warmup.
-  bool enable = 1;
-}
-
-message ModelWarmupResponse {
-  // Whether model server warmup is currently enabled.
-  bool warmup_enabled = 1;
-}
-
-message ModelWarmupRequest {
-  // Denotes whether to enable model server warmup.
-  bool enable = 1;
-}
-
-message ModelWarmupResponse {
-  // Whether model server warmup is currently enabled.
-  bool warmup_enabled = 1;
 }
