@@ -20,11 +20,8 @@ See implementations/*/sever.py for examples.
 import asyncio
 from concurrent import futures
 import logging
-import os
-import signal
 import threading
-import traceback
-from typing import Any, Type, Optional
+from typing import Any, Type
 
 import grpc
 import jax
@@ -32,8 +29,6 @@ from jetstream.core import config_lib
 from jetstream.core import orchestrator
 from jetstream.core.metrics.prometheus import JetstreamMetricsCollector
 from jetstream.core.proto import jetstream_pb2_grpc
-from jetstream.core.proto import jetstream_pb2
-from jetstream.engine import aot_utils
 
 from prometheus_client import start_http_server
 
