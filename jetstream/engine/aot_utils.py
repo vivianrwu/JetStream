@@ -88,7 +88,7 @@ def initialize_prefill_jit_cache(
     padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
 
     lowered = jax.jit(
-        prefill_engine.prefill,
+        prefill_engine._downstream_engine.prefill,
         out_shardings=prefill_engine.get_prefix_destination_sharding(),
     ).lower(
         params=prefill_params,
@@ -157,13 +157,13 @@ def initialize_insert_generate_jit_cache(
     batch_size = generate_engine.max_concurrent_decodes
     padded_tokens, true_length = jnp.ones((length), dtype='int32'), length
 
-    prefill, first_token = prefill_engine.prefill(
+    prefill, first_token = prefill_engine._downstream_engine.prefill(
         params=prefill_params,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
 
-    lowered = jax.jit(generate_engine.insert).lower(
+    lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
         prefix=prefill, decode_state=decode_state, slot=1
     )
     logging.info(
@@ -186,7 +186,7 @@ def initialize_insert_generate_jit_cache(
         "---------Generate compilation %d begun.---------", generate_idx
     )
 
-    lowered = jax.jit(generate_engine.generate).lower(
+    lowered = jax.jit(generate_engine._downstream_engine.generate).lower(
         params=generate_params,
         decode_state=decode_state,
     )
