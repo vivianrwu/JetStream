@@ -166,6 +166,7 @@ def initialize_insert_generate_jit_cache(
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
         prefix=prefill, decode_state=decode_state, slot=1
     )
+    logging.info("lowered.as_text() is %s", lowered.as_text())
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
         generate_idx,
