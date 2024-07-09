@@ -359,5 +359,5 @@ class WarmedUpEngine(Engine):
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     return self._downstream_engine.colocated_cpus
 
-  def get_request(self, request: orchestrator.ActiveRequest):
+  def set_active_request(self, request: orchestrator.ActiveRequest):
     self.active_request = request
