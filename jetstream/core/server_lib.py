@@ -167,8 +167,6 @@ def run(
     prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in prefill_engines]
     generate_engines = [engine_api.WarmedUpEngine(ge) for ge in generate_engines]
 
-    warmup_enabled = True
-
     # try:
     #   warmup_enabled = aot_utils.layout_params_and_compile_executables(
     #       prefill_engines,  # pylint: disable=protected-access
@@ -191,7 +189,6 @@ def run(
       jax_padding=jax_padding,
       metrics_collector=metrics_collector,
       is_ray_backend=config.is_ray_backend,
-      warmup_enabled=warmup_enabled,
   )
   # We default threads to the total number of concurrent allowed decodes,
   # to make sure we can fully saturate the model. Set default minimum to 64.
