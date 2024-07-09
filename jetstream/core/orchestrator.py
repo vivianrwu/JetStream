@@ -678,7 +678,7 @@ class Driver:
             generate_timestep,
         )
 
-       if type(generate_engine) == engine_api.WarmedUpEngine:
+        if type(generate_engine) == engine_api.WarmedUpEngine:
           generate_engine.set_active_request(new_request) 
         # if self.warmup_enabled:
         #   generate_engine.true_length = new_request.true_length
