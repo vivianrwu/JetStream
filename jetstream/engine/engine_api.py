@@ -262,7 +262,7 @@ class WarmedUpEngine(Engine):
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
   padded_token_length: int
-  true_length: int
+  # true_length: int
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
@@ -348,3 +348,6 @@ class WarmedUpEngine(Engine):
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     return self._downstream_engine.colocated_cpus
+
+  def set_padded_token_length(self, padded_token_length: int):
+    self.padded_token_length = padded_token_length

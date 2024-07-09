@@ -135,7 +135,6 @@ class ActiveRequest:
   #################### Information relevant for prefill ########################
   history_path: Optional[str] = None
   prefill_content: Optional[str | list[int]] = None
-  true_length: Optional[int] = None
   padded_token_length: Optional[int] = None
   ################## Information relevant for detokenization ###################
   # Which generate step this was added at.
@@ -498,16 +497,12 @@ class Driver:
       padded_tokens, true_length = self._process_prefill_content(
           request, tokenizer, is_bos, prefill_engine.max_prefill_length
       )
-      request.true_length = true_length
       
       if type(prefill_engine) is engine_api.WarmedUpEngine:
-        logging.info("engine is warm engine")
         request.padded_token_length = token_utils.take_nearest_length(
           prefill_engine.prefill_buckets, true_length
         )
-        prefill_engine.padded_token_length = request.padded_token_length
-      else:
-        logging.info("engine is not warm engine")
+        prefill_engine.set_padded_token_length(request.padded_token_length)
 
       # Compute new kv cache for the prefill_content.
       prefill_result, first_token = prefill_engine.prefill(
@@ -680,7 +675,7 @@ class Driver:
         )
 
         if type(generate_engine) is engine_api.WarmedUpEngine:
-          generate_engine.true_length, generate_engine.padded_token_length = new_request.true_length, new_request.padded_token_length
+          generate_engine.set_padded_token_length(request.padded_token_length)
           
         decode_state = generate_engine.insert(
             new_request.prefill_result, decode_state, slot=slot
