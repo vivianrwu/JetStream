@@ -227,14 +227,6 @@ class Driver:
       metrics_collector: JetstreamMetricsCollector | None = None,
       is_ray_backend: bool = False,
   ):
-    # if prefill_engines is None:
-    #   prefill_engines = []
-    # if generate_engines is None:
-    #   generate_engines = []
-    # if prefill_params is None:
-    #   prefill_params = []
-    # if generate_params is None:
-    #   generate_params = []
 
     logging.info(
         "Initialising driver with %d prefill engines and %d generate engines.",
@@ -507,11 +499,15 @@ class Driver:
           request, tokenizer, is_bos, prefill_engine.max_prefill_length
       )
       request.true_length = true_length
-      request.padded_token_length = token_utils.take_nearest_length(
-        self.prefill_buckets, true_length
-      )
+      
       if type(prefill_engine) is engine_api.WarmedUpEngine:
+        logging.info("engine is warm engine")
+        request.padded_token_length = token_utils.take_nearest_length(
+          prefill_engine.prefill_buckets, true_length
+        )
         prefill_engine.padded_token_length = request.padded_token_length
+      else:
+        logging.info("engine is not warm engine")
 
       # Compute new kv cache for the prefill_content.
       prefill_result, first_token = prefill_engine.prefill(
