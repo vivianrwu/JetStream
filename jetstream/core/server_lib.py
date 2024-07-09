@@ -166,18 +166,18 @@ def run(
     prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in prefill_engines]
     generate_engines = [engine_api.WarmedUpEngine(ge) for ge in generate_engines]
 
-    # try:
-    #   warmup_enabled = aot_utils.layout_params_and_compile_executables(
-    #       prefill_engines,  # pylint: disable=protected-access
-    #       generate_engines,  # pylint: disable=protected-access
-    #       prefill_params,  # pylint: disable=protected-access
-    #       generate_params,  # pylint: disable=protected-access
-    #   )
+    try:
+      warmup_enabled = aot_utils.layout_params_and_compile_executables(
+          prefill_engines,  # pylint: disable=protected-access
+          generate_engines,  # pylint: disable=protected-access
+          prefill_params,  # pylint: disable=protected-access
+          generate_params,  # pylint: disable=protected-access
+      )
 
-    # except ValueError as e:
-    #   print(f"Model warmup encountered an error: {e}")
-    #   traceback.print_exc()
-    #   os.kill(os.getpid(), signal.SIGKILL)
+    except ValueError as e:
+      print(f"Model warmup encountered an error: {e}")
+      traceback.print_exc()
+      os.kill(os.getpid(), signal.SIGKILL)
 
   driver = orchestrator.Driver(
       prefill_engines=prefill_engines,
