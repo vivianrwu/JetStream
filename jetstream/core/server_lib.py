@@ -150,20 +150,19 @@ def run(
 
   prefill_engines = engines.prefill_engines + engines.interleaved_engines
   generate_engines = engines.generate_engines + engines.interleaved_engines
-  prefill_params = prefill_params + shared_params,
-  generate_params = generate_params + shared_params,
+  prefill_params = prefill_params + shared_params
+  generate_params = generate_params + shared_params
+
+  if prefill_engines is None:
+    prefill_engines = []
+  if generate_engines is None:
+    generate_engines = []
+  if prefill_params is None:
+    prefill_params = []
+  if generate_params is None:
+    generate_params = []
 
   if enable_model_warmup:
-
-    if prefill_engines is None:
-      prefill_engines = []
-    if generate_engines is None:
-      generate_engines = []
-    if prefill_params is None:
-      prefill_params = []
-    if generate_params is None:
-      generate_params = []
-
     prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in prefill_engines]
     generate_engines = [engine_api.WarmedUpEngine(ge) for ge in generate_engines]
 
