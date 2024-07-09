@@ -675,7 +675,7 @@ class Driver:
         )
 
         if type(generate_engine) is engine_api.WarmedUpEngine:
-          generate_engine.set_padded_token_length(request.padded_token_length)
+          generate_engine.set_padded_token_length(new_request.padded_token_length)
           
         decode_state = generate_engine.insert(
             new_request.prefill_result, decode_state, slot=slot
