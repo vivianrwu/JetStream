@@ -167,6 +167,8 @@ def run(
     prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in prefill_engines]
     generate_engines = [engine_api.WarmedUpEngine(ge) for ge in generate_engines]
 
+    warmup_enabled = True
+
     # try:
     #   warmup_enabled = aot_utils.layout_params_and_compile_executables(
     #       prefill_engines,  # pylint: disable=protected-access
