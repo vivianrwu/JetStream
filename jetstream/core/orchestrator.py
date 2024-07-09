@@ -136,7 +136,7 @@ class ActiveRequest:
   history_path: Optional[str] = None
   prefill_content: Optional[str | list[int]] = None
   true_length: Optional[int] = None
-  padded_token_length: Optional[int] = None
+  # padded_token_length: Optional[int] = None
   ################## Information relevant for detokenization ###################
   # Which generate step this was added at.
   generate_timestep_added: Optional[int] = None
@@ -226,7 +226,6 @@ class Driver:
       jax_padding: bool = True,
       metrics_collector: JetstreamMetricsCollector | None = None,
       is_ray_backend: bool = False,
-      warmup_enabled: bool = False,
   ):
     if prefill_engines is None:
       prefill_engines = []
@@ -249,8 +248,6 @@ class Driver:
     self._generate_params = generate_params
     self._interleaved_mode = interleaved_mode
     self._metrics_collector = metrics_collector
-
-    self.warmup_enabled = warmup_enabled
 
     # Stages 1-4 represent the life cycle of a request.
     # Stage 1
@@ -511,16 +508,6 @@ class Driver:
       )
       request.true_length = true_length
 
-      if self.warmup_enabled:
-        logging.info("Model warmup is enabled")
-        padded_token_length = token_utils.take_nearest_length(
-            prefill_engine.prefill_buckets, true_length
-        )
-        prefill_engine.padded_token_length = padded_token_length
-        request.padded_token_length = padded_token_length
-      else:
-        logging.info("Model warmup is disabled")
-
       # Compute new kv cache for the prefill_content.
       prefill_result, first_token = prefill_engine.prefill(
           params=prefill_params,
@@ -691,9 +678,10 @@ class Driver:
             generate_timestep,
         )
 
-        if self.warmup_enabled:
-          generate_engine.true_length = new_request.true_length
-          generate_engine.padded_token_length = new_request.padded_token_length
+        generate_engine.set_active_request(new_request) if type(generate_engine) == engine_api.WarmedUpEngine
+        # if self.warmup_enabled:
+        #   generate_engine.true_length = new_request.true_length
+        #   generate_engine.padded_token_length = new_request.padded_token_length
           
         decode_state = generate_engine.insert(
             new_request.prefill_result, decode_state, slot=slot

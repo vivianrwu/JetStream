@@ -27,8 +27,7 @@ import numpy as np
 
 from jetstream.engine import tokenizer_pb2
 from jetstream.engine import token_utils
-# from jetstream.core import orchestrator.ActiveRequest as ActiveRequest
-
+from jetstream.core import orchestrator
 
 # The model parameters - their partitioning will be unique for different prefill
 # and decode topoologies.
@@ -265,6 +264,7 @@ class WarmedUpEngine(Engine):
   prefill_buckets: list[int]
   padded_token_length: int
   true_length: int
+  active_request: orchestrator.ActiveRequest
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
@@ -279,7 +279,11 @@ class WarmedUpEngine(Engine):
       true_length: int,
   ) -> Tuple[Prefix, ResultTokens]:
 
-    prefill_result, first_token = self.prefill_compiled[self.padded_token_length](
+    padded_token_length = token_utils.take_nearest_length(
+      self.prefill_buckets, true_length
+    )
+
+    prefill_result, first_token = self.prefill_compiled[padded_token_length](
         params=params,
         padded_tokens=padded_tokens,
         true_length=true_length,
@@ -292,9 +296,13 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
+
+    padded_token_length = token_utils.take_nearest_length(
+      self.prefill_buckets, self.active_request.true_length
+    )
   
     decode_state = self.insert_compiled[
-        self.padded_token_length
+        padded_token_length
     ](
         prefix=prefix,
         decode_state=decode_state,
@@ -350,3 +358,6 @@ class WarmedUpEngine(Engine):
   @property
   def colocated_cpus(self) -> Union[list[CpuDevices], None]:
     return self._downstream_engine.colocated_cpus
+
+  def get_request(self, request: orchestrator.ActiveRequest):
+    self.active_request = request

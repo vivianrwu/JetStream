@@ -33,7 +33,7 @@ from jetstream.core import orchestrator
 from jetstream.core.metrics.prometheus import JetstreamMetricsCollector
 from jetstream.core.proto import jetstream_pb2_grpc
 from jetstream.core.proto import jetstream_pb2
-from jetstream.engine import aot_utils
+from jetstream.engine import aot_utils, engine_api
 
 from prometheus_client import start_http_server
 
