@@ -290,13 +290,9 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
-
-    padded_token_length = token_utils.take_nearest_length(
-      self.prefill_buckets, self.active_request.true_length
-    )
   
     decode_state = self.insert_compiled[
-        padded_token_length
+        self.padded_token_length
     ](
         prefix=prefix,
         decode_state=decode_state,
