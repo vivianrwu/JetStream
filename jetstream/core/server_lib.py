@@ -148,16 +148,38 @@ def run(
         "Not starting Prometheus server: --prometheus_port flag not set"
     )
 
+  prefill_engines = engines.prefill_engines + engines.interleaved_engines
+  generate_engines = engines.generate_engines + engines.interleaved_engines
+  prefill_params = prefill_params + shared_params,
+  generate_params = generate_params + shared_params,
+
+  if enable_model_warmup:
+    prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in prefill_engines]
+    generate_engines = [engine_api.WarmedUpEngine(ge) for ge in generate_engines]
+
+    try:
+      warmup_enabled = aot_utils.layout_params_and_compile_executables(
+          prefill_engines,  # pylint: disable=protected-access
+          generate_engines,  # pylint: disable=protected-access
+          prefill_params,  # pylint: disable=protected-access
+          generate_params,  # pylint: disable=protected-access
+      )
+
+    except ValueError as e:
+      print(f"Model warmup encountered an error: {e}")
+      traceback.print_exc()
+      os.kill(os.getpid(), signal.SIGKILL)
+
   driver = orchestrator.Driver(
-      prefill_engines=engines.prefill_engines + engines.interleaved_engines,
-      generate_engines=engines.generate_engines + engines.interleaved_engines,
-      prefill_params=prefill_params + shared_params,
-      generate_params=generate_params + shared_params,
+      prefill_engines=prefill_engines,
+      generate_engines=generate_engines,
+      prefill_params=prefill_params,
+      generate_params=generate_params,
       interleaved_mode=interleaved_mode,
       jax_padding=jax_padding,
       metrics_collector=metrics_collector,
       is_ray_backend=config.is_ray_backend,
-      enable_model_warmup=enable_model_warmup,
+      warmup_enabled=warmup_enabled,
   )
   # We default threads to the total number of concurrent allowed decodes,
   # to make sure we can fully saturate the model. Set default minimum to 64.

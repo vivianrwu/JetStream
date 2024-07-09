@@ -226,7 +226,7 @@ class Driver:
       jax_padding: bool = True,
       metrics_collector: JetstreamMetricsCollector | None = None,
       is_ray_backend: bool = False,
-      enable_model_warmup: bool = False,
+      warmup_enabled: bool = False,
   ):
     if prefill_engines is None:
       prefill_engines = []
@@ -250,23 +250,7 @@ class Driver:
     self._interleaved_mode = interleaved_mode
     self._metrics_collector = metrics_collector
 
-    self.warmup_enabled = False
-    if enable_model_warmup:
-      self._prefill_engines = [engine_api.WarmedUpEngine(pe) for pe in self._prefill_engines]
-      self._generate_engines = [engine_api.WarmedUpEngine(ge) for ge in self._generate_engines]
-
-      try:
-        self.warmup_enabled = aot_utils.layout_params_and_compile_executables(
-            self._prefill_engines,  # pylint: disable=protected-access
-            self._generate_engines,  # pylint: disable=protected-access
-            self._prefill_params,  # pylint: disable=protected-access
-            self._generate_params,  # pylint: disable=protected-access
-        )
-
-      except ValueError as e:
-        print(f"Model warmup encountered an error: {e}")
-        traceback.print_exc()
-        os.kill(os.getpid(), signal.SIGKILL)
+    self.warmup_enabled = warmup_enabled
 
     # Stages 1-4 represent the life cycle of a request.
     # Stage 1
