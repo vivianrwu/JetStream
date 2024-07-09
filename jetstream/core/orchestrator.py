@@ -136,7 +136,7 @@ class ActiveRequest:
   history_path: Optional[str] = None
   prefill_content: Optional[str | list[int]] = None
   true_length: Optional[int] = None
-  # padded_token_length: Optional[int] = None
+  padded_token_length: Optional[int] = None
   ################## Information relevant for detokenization ###################
   # Which generate step this was added at.
   generate_timestep_added: Optional[int] = None
@@ -507,6 +507,11 @@ class Driver:
           request, tokenizer, is_bos, prefill_engine.max_prefill_length
       )
       request.true_length = true_length
+      request.padded_token_length = token_utils.take_nearest_length(
+        self.prefill_buckets, true_length
+      )
+      if type(prefill_engine) is engine_api.WarmedUpEngine:
+        prefill_engine.padded_token_length = request.padded_token_length
 
       # Compute new kv cache for the prefill_content.
       prefill_result, first_token = prefill_engine.prefill(
@@ -678,8 +683,8 @@ class Driver:
             generate_timestep,
         )
 
-        if type(generate_engine) == engine_api.WarmedUpEngine:
-          generate_engine.set_active_request(new_request) 
+        if type(generate_engine) is engine_api.WarmedUpEngine:
+          generate_engine.true_length, generate_engine.padded_token_length = new_request.true_length, new_request.padded_token_length
         # if self.warmup_enabled:
         #   generate_engine.true_length = new_request.true_length
         #   generate_engine.padded_token_length = new_request.padded_token_length
