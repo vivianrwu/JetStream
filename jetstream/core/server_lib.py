@@ -161,7 +161,7 @@ def run(
 
   if enable_model_warmup:
     prefill_engines, generate_engines = run_model_warmup(
-        prefill_engines, generate_engines
+        prefill_engines, generate_engines, prefill_params, generate_params
     )
 
   driver = orchestrator.Driver(
