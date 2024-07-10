@@ -195,7 +195,7 @@ def initialize_insert_generate_jit_cache(
 
     lowered = jax.jit(generate_engine._downstream_engine.generate).lower(
         params=generate_params,
-        decode_state=any_decode_state,
+        decode_state=decode_state,
     )
     logging.info(
         "---------Generate engine %d lowered.---------",
