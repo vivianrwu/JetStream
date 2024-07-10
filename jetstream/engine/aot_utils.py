@@ -163,7 +163,7 @@ def initialize_insert_generate_jit_cache(
         true_length=true_length,
     )
 
-    self._mesh = generate_engine.mesh
+    generate_engine._mesh = generate_engine.mesh
     slot_shape = jax.ShapeDtypeStruct(
         (),
         jnp.int32,
