@@ -152,7 +152,6 @@ def initialize_insert_generate_jit_cache(
     prefill_buckets.append(generate_engine.max_prefill_length)
 
   decode_state = generate_engine.init_decode_state()
-  any_decode_state = None
 
   def compile_insert(length):
     batch_size = generate_engine.max_concurrent_decodes
@@ -164,15 +163,15 @@ def initialize_insert_generate_jit_cache(
         true_length=true_length,
     )
 
-    # generate_engine._mesh = generate_engine.mesh
-    # slot_shape = jax.ShapeDtypeStruct(
-    #     (),
-    #     jnp.int32,
-    #     sharding=generate_engine.replicated_sharding,
-    # )
+    generate_engine._mesh = generate_engine.mesh
+    slot_shape = jax.ShapeDtypeStruct(
+        (),
+        jnp.int32,
+        sharding=generate_engine.replicated_sharding,
+    )
 
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
-        prefix=prefill, decode_state=any_decode_state, slot=1
+        prefix=prefill, decode_state=decode_state, slot=slot_shape
     )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
@@ -180,7 +179,6 @@ def initialize_insert_generate_jit_cache(
         length,
     )
     compiled = lowered.compile()
-    any_decode_state = compiled
     insert_compiled[length] = compiled
 
     logging.info(
@@ -221,6 +219,13 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
+  generate_compiled = compile_generate()
+  logging.info(
+      "---------Generate engine %d compiled generation step.---------",
+      generate_idx,
+  )
+  generate_engine.generate_compiled = generate_compiled
+
   insert_compiled = {}
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
@@ -228,13 +233,6 @@ def initialize_insert_generate_jit_cache(
     _ = list(executor.map(compile_insert, prefill_buckets))
 
   generate_engine.insert_compiled = insert_compiled
-
-  generate_compiled = compile_generate()
-  logging.info(
-      "---------Generate engine %d compiled generation step.---------",
-      generate_idx,
-  )
-  generate_engine.generate_compiled = generate_compiled
 
   logging.info(
       "---------Insertion generation compilation %d complete.---------",

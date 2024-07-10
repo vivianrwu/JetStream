@@ -268,7 +268,8 @@ class WarmedUpEngine(Engine):
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
-    # self._mesh = None
+    self._mesh = None
+    self.device_slots = None
   
   def prefill(
       self,
@@ -292,13 +293,13 @@ class WarmedUpEngine(Engine):
       decode_state: DecodeState,
       slot: int,
   ) -> DecodeState:
-  
+
     decode_state = self.insert_compiled[
         self.padded_token_length
     ](
         prefix=prefix,
         decode_state=decode_state,
-        slot=slot,
+        slot=self.device_slots[slot],
     )
     return decode_state
     
@@ -354,7 +355,10 @@ class WarmedUpEngine(Engine):
   def set_padded_token_length(self, padded_token_length: int):
     self.padded_token_length = padded_token_length
 
-  # @property
-  # def replicated_sharding(self) -> jax.sharding.NamedSharding:
-  #   """Returns sharding to specify replication of a single object."""
-  #   return jax.sharding.NamedSharding(self._mesh, P(None))
+  def get_h2d_device_put():
+    return jax.device_put
+
+  @property
+  def replicated_sharding(self) -> jax.sharding.NamedSharding:
+    """Returns sharding to specify replication of a single object."""
+    return jax.sharding.NamedSharding(self._mesh, P(None))
