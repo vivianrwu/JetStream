@@ -115,7 +115,7 @@ def initialize_prefill_jit_cache(
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
   ) as executor:
-    prefill_compiled = executor.map(compile_prefill, prefill_buckets)
+    prefill_compiled = list(executor.map(compile_prefill, prefill_buckets))
 
   prefill_engine.prefill_compiled = prefill_compiled
 
