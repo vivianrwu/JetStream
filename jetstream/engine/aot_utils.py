@@ -172,7 +172,7 @@ def initialize_insert_generate_jit_cache(
     # )
 
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
-        prefix=prefill, decode_state=decode_state, slot=slot
+        prefix=prefill, decode_state=decode_state, slot=1
     )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
@@ -235,7 +235,7 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
   generate_engine.generate_compiled = generate_compiled
-  
+
   logging.info(
       "---------Insertion generation compilation %d complete.---------",
       generate_idx,
