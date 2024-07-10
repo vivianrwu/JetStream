@@ -152,6 +152,7 @@ def initialize_insert_generate_jit_cache(
     prefill_buckets.append(generate_engine.max_prefill_length)
 
   decode_state = generate_engine.init_decode_state()
+  any_decode_state = None
 
   def compile_insert(length):
     batch_size = generate_engine.max_concurrent_decodes
@@ -179,6 +180,7 @@ def initialize_insert_generate_jit_cache(
         length,
     )
     compiled = lowered.compile()
+    any_decode_state = compiled
     insert_compiled[length] = compiled
 
     logging.info(
@@ -195,7 +197,7 @@ def initialize_insert_generate_jit_cache(
 
     lowered = jax.jit(generate_engine._downstream_engine.generate).lower(
         params=generate_params,
-        decode_state=decode_state,
+        decode_state=any_decode_state,
     )
     logging.info(
         "---------Generate engine %d lowered.---------",
@@ -219,13 +221,6 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
-  generate_compiled = compile_generate()
-  logging.info(
-      "---------Generate engine %d compiled generation step.---------",
-      generate_idx,
-  )
-  generate_engine.generate_compiled = generate_compiled
-
   insert_compiled = {}
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
@@ -233,6 +228,14 @@ def initialize_insert_generate_jit_cache(
     _ = list(executor.map(compile_insert, prefill_buckets))
 
   generate_engine.insert_compiled = insert_compiled
+
+  generate_compiled = compile_generate()
+  logging.info(
+      "---------Generate engine %d compiled generation step.---------",
+      generate_idx,
+  )
+  generate_engine.generate_compiled = generate_compiled
+  
   logging.info(
       "---------Insertion generation compilation %d complete.---------",
       generate_idx,
