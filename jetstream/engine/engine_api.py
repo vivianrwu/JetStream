@@ -24,6 +24,8 @@ from typing import Any, Optional, Tuple, Union
 from flax import struct
 import jax
 import numpy as np
+from jax.sharding import PartitionSpec as P
+
 
 from jetstream.engine import tokenizer_pb2
 from jetstream.engine import token_utils
@@ -266,7 +268,7 @@ class WarmedUpEngine(Engine):
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
-
+    self._mesh = None
   
   def prefill(
       self,
@@ -351,3 +353,8 @@ class WarmedUpEngine(Engine):
 
   def set_padded_token_length(self, padded_token_length: int):
     self.padded_token_length = padded_token_length
+
+  @property
+  def replicated_sharding(self) -> jax.sharding.NamedSharding:
+    """Returns sharding to specify replication of a single object."""
+    return jax.sharding.NamedSharding(self._mesh, P(None))

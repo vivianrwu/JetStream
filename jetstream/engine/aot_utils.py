@@ -163,8 +163,15 @@ def initialize_insert_generate_jit_cache(
         true_length=true_length,
     )
 
+    self._mesh = generate_engine.mesh
+    slot_shape = jax.ShapeDtypeStruct(
+        (),
+        jnp.int32,
+        sharding=generate_engine.replicated_sharding,
+    )
+
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
-        prefix=prefill, decode_state=decode_state, slot=1
+        prefix=prefill, decode_state=decode_state, slot=slot_shape
     )
     logging.info("lowered.as_text() is %s", lowered.as_text())
     logging.info(
