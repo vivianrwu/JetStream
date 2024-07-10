@@ -261,15 +261,18 @@ class WarmedUpEngine(Engine):
   # Compiled inserts
   # insert_compiled: dict[int, jax.stages.Compiled]
   # Compiled generate
-  generate_compiled: jax.stages.Compiled
-  prefill_buckets: list[int]
-  padded_token_length: int
+  # generate_compiled: jax.stages.Compiled
+  # prefill_buckets: list[int]
+  # padded_token_length: int
   # true_length: int
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
-    self.prefill_compiled = None
-    self.insert_compiled = None
+    self.prefill_executable = None
+    self.insert_executable = None
+    self.generate_executable = None
+    self.prefill_buckets = None
+    self.padded_token_length = None
     # self._mesh = None
     # self.device_slots = None
   
@@ -282,7 +285,7 @@ class WarmedUpEngine(Engine):
       true_length: int,
   ) -> Tuple[Prefix, ResultTokens]:
 
-    prefill_result, first_token = self.prefill_compiled[self.padded_token_length](
+    prefill_result, first_token = self.prefill_executable[self.padded_token_length](
         params=params,
         padded_tokens=padded_tokens,
         true_length=true_length,
@@ -296,7 +299,7 @@ class WarmedUpEngine(Engine):
       slot: int,
   ) -> DecodeState:
 
-    decode_state = self.insert_compiled[
+    decode_state = self.insert_executable[
         self.padded_token_length
     ](
         prefix=prefix,
@@ -308,7 +311,7 @@ class WarmedUpEngine(Engine):
   def generate(
       self, params: Params, decode_state: DecodeState
   ) -> Tuple[DecodeState, ResultTokens]:
-    decode_state, sampled_tokens = self.generate_compiled(
+    decode_state, sampled_tokens = self.generate_executable(
         params=params, decode_state=decode_state
     )
     return decode_state, sampled_tokens

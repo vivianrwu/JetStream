@@ -30,30 +30,30 @@ def layout_params_and_compile_executables(
   any_prefill_engine = None
   any_prefill_params = None
 
-  compiled_prefills = []
-  compiled_inserts_generate = []
+  prefill_executables = []
+  inserts_generate_executables = []
 
   for i, pe in enumerate(prefill_engines):
     any_prefill_engine = pe
     any_prefill_params = prefill_params[i]
-    prefill_compiled = initialize_prefill_jit_cache(
+    prefill_executable = initialize_prefill_jit_cache(
         prefill_engine=pe,
         prefill_params=prefill_params[i],
         prefill_idx=i,
     )
-    compiled_prefills.append(prefill_compiled)
+    prefill_executables.append(prefill_executable)
 
   for i, ge in enumerate(generate_engines):
-    insert_compiled, generate_compiled = initialize_insert_generate_jit_cache(
+    insert_executable, generate_executable = initialize_insert_generate_jit_cache(
         prefill_engine=any_prefill_engine,
         generate_engine=ge,
         prefill_params=any_prefill_params,
         generate_params=generate_params[i],
         generate_idx=i,
     )
-    compiled_inserts_generate.append([insert_compiled, generate_compiled])
+    inserts_generate_executables.append([insert_executable, generate_executable])
 
-  if compiled_prefills and compiled_inserts_generate:
+  if prefill_executables and inserts_generate_executables:
     return True
   return False
 
@@ -115,15 +115,21 @@ def initialize_prefill_jit_cache(
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
   ) as executor:
-    prefill_compiled = list(executor.map(compile_prefill, prefill_buckets))
+    prefill_executable = list(executor.map(compile_prefill, prefill_buckets))
 
-  prefill_engine.prefill_compiled = prefill_compiled
+  prefill_executable = {
+    k: cast(jax.stages.Compiled, e)
+    for k, e in zip(prefill_buckets, prefill_executable)
+  }
+  
+  prefill_engine.prefill_executable = prefill_executable
 
   logging.info(
       "---------Prefill compilation %d complete.---------", prefill_idx
   )
 
-  return prefill_compiled
+  return prefill_executable
+  
 
 
 def initialize_insert_generate_jit_cache(
@@ -222,24 +228,28 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
-  generate_compiled = compile_generate()
+  generate_executable = compile_generate()
   logging.info(
       "---------Generate engine %d compiled generation step.---------",
       generate_idx,
   )
-  generate_engine.generate_compiled = generate_compiled
+  generate_engine.generate_executable = generate_executable
 
 #   insert_compiled = {}
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
   ) as executor:
-    insert_compiled = list(executor.map(compile_insert, prefill_buckets))
+    insert_executable = list(executor.map(compile_insert, prefill_buckets))
 
-  generate_engine.insert_compiled = insert_compiled
+  insert_executable = {
+    k: cast(jax.stages.Compiled, e)
+    for k, e in zip(prefill_buckets, insert_executable)
+  }
+  generate_engine.insert_executable = insert_executable
 
   logging.info(
       "---------Insertion generation compilation %d complete.---------",
       generate_idx,
   )
 
-  return insert_compiled, generate_compiled
+  return insert_executable, generate_executable
