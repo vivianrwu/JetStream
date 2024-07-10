@@ -110,11 +110,11 @@ def initialize_prefill_jit_cache(
 
   logging.info("---------Prefill compilation %d begun.---------", prefill_idx)
 
-  prefill_compiled = {}
+#   prefill_compiled = {}
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
   ) as executor:
-    _ = executor.map(compile_prefill, prefill_buckets)
+    prefill_compiled = executor.map(compile_prefill, prefill_buckets)
 
   prefill_engine.prefill_compiled = prefill_compiled
 
@@ -163,15 +163,15 @@ def initialize_insert_generate_jit_cache(
         true_length=true_length,
     )
 
-    generate_engine._mesh = generate_engine.mesh
-    slot_shape = jax.ShapeDtypeStruct(
-        (),
-        jnp.int32,
-        sharding=generate_engine.replicated_sharding,
-    )
+    # generate_engine._mesh = generate_engine.mesh
+    # slot_shape = jax.ShapeDtypeStruct(
+    #     (),
+    #     jnp.int32,
+    #     sharding=generate_engine.replicated_sharding,
+    # )
 
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(
-        prefix=prefill, decode_state=decode_state, slot=slot_shape
+        prefix=prefill, decode_state=decode_state, slot=1
     )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
@@ -226,11 +226,11 @@ def initialize_insert_generate_jit_cache(
   )
   generate_engine.generate_compiled = generate_compiled
 
-  insert_compiled = {}
+#   insert_compiled = {}
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=len(prefill_buckets)
   ) as executor:
-    _ = list(executor.map(compile_insert, prefill_buckets))
+    insert_compiled = list(executor.map(compile_insert, prefill_buckets))
 
   generate_engine.insert_compiled = insert_compiled
 

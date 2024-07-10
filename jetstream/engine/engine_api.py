@@ -257,9 +257,9 @@ class WarmedUpEngine(Engine):
   """
 
   # Compiled prefills
-  prefill_compiled: dict[int, jax.stages.Compiled]
+  # prefill_compiled: dict[int, jax.stages.Compiled]
   # Compiled inserts
-  insert_compiled: dict[int, jax.stages.Compiled]
+  # insert_compiled: dict[int, jax.stages.Compiled]
   # Compiled generate
   generate_compiled: jax.stages.Compiled
   prefill_buckets: list[int]
@@ -268,8 +268,10 @@ class WarmedUpEngine(Engine):
 
   def __init__(self, downstream_engine: Engine):    
     self._downstream_engine = downstream_engine
-    self._mesh = None
-    self.device_slots = None
+    self.prefill_compiled = None
+    self.insert_compiled = None
+    # self._mesh = None
+    # self.device_slots = None
   
   def prefill(
       self,
@@ -355,10 +357,10 @@ class WarmedUpEngine(Engine):
   def set_padded_token_length(self, padded_token_length: int):
     self.padded_token_length = padded_token_length
 
-  def get_h2d_device_put():
-    return jax.device_put
+  # def get_h2d_device_put():
+  #   return jax.device_put
 
-  @property
-  def replicated_sharding(self) -> jax.sharding.NamedSharding:
-    """Returns sharding to specify replication of a single object."""
-    return jax.sharding.NamedSharding(self._mesh, P(None))
+  # @property
+  # def replicated_sharding(self) -> jax.sharding.NamedSharding:
+  #   """Returns sharding to specify replication of a single object."""
+  #   return jax.sharding.NamedSharding(self._mesh, P(None))

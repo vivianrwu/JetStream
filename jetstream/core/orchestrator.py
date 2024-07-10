@@ -606,17 +606,17 @@ class Driver:
     generate_params = self._generate_params[idx]
     logging.info("---------Generate params %d loaded.---------", idx)
 
-    if type(generate_engine) is engine_api.WarmedUpEngine:
-      device_slots = [
-          x.astype(jnp.int32)
-          for x in jax.device_put(
-              list(range(generate_engine.max_concurrent_decodes)),
-              generate_engine.replicated_sharding,
-          )
-      ]
+    # if type(generate_engine) is engine_api.WarmedUpEngine:
+    #   device_slots = [
+    #       x.astype(jnp.int32)
+    #       for x in jax.device_put(
+    #           list(range(generate_engine.max_concurrent_decodes)),
+    #           generate_engine.replicated_sharding,
+    #       )
+    #   ]
 
-      jax.block_until_ready(device_slots)
-      generate_engine.device_slots = device_slots
+    #   jax.block_until_ready(device_slots)
+    #   generate_engine.device_slots = device_slots
 
     time_of_last_generate = time.time()
     time_of_last_print = time.time()
