@@ -304,7 +304,7 @@ class WarmedUpEngine(Engine):
     ](
         prefix=prefix,
         decode_state=decode_state,
-        slot=self.device_slots[slot],
+        slot=slot,
     )
     return decode_state
     
