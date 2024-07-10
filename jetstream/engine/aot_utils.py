@@ -106,7 +106,8 @@ def initialize_prefill_jit_cache(
         prefill_idx,
         length,
     )
-    prefill_compiled[length] = compiled
+    # prefill_compiled[length] = compiled
+    return compiled
 
   logging.info("---------Prefill compilation %d begun.---------", prefill_idx)
 
@@ -179,13 +180,15 @@ def initialize_insert_generate_jit_cache(
         length,
     )
     compiled = lowered.compile()
-    insert_compiled[length] = compiled
+    # insert_compiled[length] = compiled
 
     logging.info(
         "---------Generate engine %d compiled for insert length %d.---------",
         generate_idx,
         length,
     )
+
+    return compiled
 
   def compile_generate():
 
