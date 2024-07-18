@@ -249,7 +249,7 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
-    generate_executable = compile_generate()
+  generate_executable = compile_generate()
   logging.info(
       "---------Generate engine %d compiled generation step.---------",
       generate_idx,
