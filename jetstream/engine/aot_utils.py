@@ -19,6 +19,7 @@ import jax.numpy as jnp
 import concurrent.futures
 from typing import Any, Optional, cast
 import logging
+import os
 from jetstream.engine import engine_api, token_utils
 
 
