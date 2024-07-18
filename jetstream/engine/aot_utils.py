@@ -36,6 +36,8 @@ def layout_params_and_compile_executables(
       prefill_params: Prefill only params.
       generate_params: Generate only params.
   """
+
+  os.environ["LIBTPU_INIT_ARGS"] = os.environ.get("LIBTPU_INIT_ARGS", "") + " --xla_tpu_spmd_rng_bit_generator_unsafe=true"
   prefill_engines = prefill_engines if prefill_engines else []
   generate_engines = generate_engines if generate_engines else []
   prefill_params = prefill_params if prefill_params else []
