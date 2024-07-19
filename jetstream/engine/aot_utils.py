@@ -19,16 +19,18 @@ import jax.numpy as jnp
 import concurrent.futures
 from typing import Any, Optional, cast
 import logging
+import frozendict
 from jetstream.engine import engine_api, token_utils
 
-XLAFlags = {
+XLAFlags = frozendict({
     "xla_tpu_enable_data_parallel_all_reduce_opt": True,
     "xla_tpu_data_parallel_opt_different_sized_ops":True,
     "xla_tpu_enable_async_collective_fusion": True,
     "xla_tpu_enable_async_collective_fusion_fuse_all_gather": True,
     "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
     "xla_tpu_overlap_compute_collective_tc": True,
-}
+    "xla_enable_async_all_gather": True,
+})
 
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
