@@ -19,18 +19,18 @@ import jax.numpy as jnp
 import concurrent.futures
 from typing import Any, Optional, cast
 import logging
-import frozendict
+import os
 from jetstream.engine import engine_api, token_utils
 
-XLAFlags = frozendict.frozendict({
-    "xla_tpu_enable_data_parallel_all_reduce_opt": True,
-    "xla_tpu_data_parallel_opt_different_sized_ops":True,
-    "xla_tpu_enable_async_collective_fusion": True,
-    "xla_tpu_enable_async_collective_fusion_fuse_all_gather": True,
-    "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
-    "xla_tpu_overlap_compute_collective_tc": True,
-    "xla_enable_async_all_gather": True,
-})
+# XLAFlags = frozendict.frozendict({
+#     "xla_tpu_enable_data_parallel_all_reduce_opt": True,
+#     "xla_tpu_data_parallel_opt_different_sized_ops":True,
+#     "xla_tpu_enable_async_collective_fusion": True,
+#     "xla_tpu_enable_async_collective_fusion_fuse_all_gather": True,
+#     "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
+#     "xla_tpu_overlap_compute_collective_tc": True,
+#     "xla_enable_async_all_gather": True,
+# })
 
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
@@ -46,6 +46,8 @@ def layout_params_and_compile_executables(
       prefill_params: Prefill only params.
       generate_params: Generate only params.
   """
+
+  os.environ["LIBTPU_INIT_ARGS"] = os.environ.get("LIBTPU_INIT_ARGS", "") + " --xla_tpu_enable_data_parallel_all_reduce_opt=true --xla_tpu_data_parallel_opt_different_sized_ops=true --xla_tpu_enable_async_collective_fusion=true --xla_tpu_enable_async_collective_fusion_fuse_all_gather=true --xla_tpu_enable_async_collective_fusion_multiple_steps=true --xla_tpu_overlap_compute_collective_tc=true --xla_enable_async_all_gather=true"
   prefill_engines = prefill_engines if prefill_engines else []
   generate_engines = generate_engines if generate_engines else []
   prefill_params = prefill_params if prefill_params else []
@@ -127,7 +129,7 @@ def initialize_prefill_jit_cache(
         prefill_idx,
         length,
     )
-    compiled = lowered.compile(compiler_options=XLAFlags)
+    compiled = lowered.compile()
     logging.info(
         "---------Prefill engine %d compiled for prefill length %d.---------",
         prefill_idx,
