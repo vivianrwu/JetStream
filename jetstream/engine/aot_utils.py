@@ -28,7 +28,6 @@ XLAFlags = {
     "xla_tpu_enable_async_collective_fusion_fuse_all_gather": True,
     "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
     "xla_tpu_overlap_compute_collective_tc": True,
-    "xla_enable_async_all_gather": True
 }
 
 def layout_params_and_compile_executables(
