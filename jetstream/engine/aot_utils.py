@@ -26,10 +26,10 @@ XLAFlags = frozendict.frozendict({
     "xla_tpu_enable_data_parallel_all_reduce_opt": True,
     "xla_tpu_data_parallel_opt_different_sized_ops": 1,
     "xla_tpu_enable_async_collective_fusion": True,
-    "xla_tpu_enable_async_collective_fusion_fuse_all_gather": 2,
+    "xla_tpu_enable_async_collective_fusion_fuse_all_gather": "true",
     "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
     "xla_tpu_overlap_compute_collective_tc": True,
-    "xla_enable_async_all_gather": 2,
+    "xla_enable_async_all_gather": "true",
 })
 
 def layout_params_and_compile_executables(
