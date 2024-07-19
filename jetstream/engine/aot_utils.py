@@ -19,18 +19,18 @@ import jax.numpy as jnp
 import concurrent.futures
 from typing import Any, Optional, cast
 import logging
-import os
+import frozendict
 from jetstream.engine import engine_api, token_utils
 
-# XLAFlags = frozendict.frozendict({
-#     "xla_tpu_enable_data_parallel_all_reduce_opt": True,
-#     "xla_tpu_data_parallel_opt_different_sized_ops":True,
-#     "xla_tpu_enable_async_collective_fusion": True,
-#     "xla_tpu_enable_async_collective_fusion_fuse_all_gather": True,
-#     "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
-#     "xla_tpu_overlap_compute_collective_tc": True,
-#     "xla_enable_async_all_gather": True,
-# })
+XLAFlags = frozendict.frozendict({
+    "xla_tpu_enable_data_parallel_all_reduce_opt": True,
+    "xla_tpu_data_parallel_opt_different_sized_ops": 1,
+    "xla_tpu_enable_async_collective_fusion": True,
+    "xla_tpu_enable_async_collective_fusion_fuse_all_gather": 2,
+    "xla_tpu_enable_async_collective_fusion_multiple_steps": True,
+    "xla_tpu_overlap_compute_collective_tc": True,
+    "xla_enable_async_all_gather": 2,
+})
 
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
@@ -47,7 +47,7 @@ def layout_params_and_compile_executables(
       generate_params: Generate only params.
   """
 
-  os.environ["LIBTPU_INIT_ARGS"] = os.environ.get("LIBTPU_INIT_ARGS", "") + " --xla_tpu_enable_data_parallel_all_reduce_opt=true --xla_tpu_data_parallel_opt_different_sized_ops=true --xla_tpu_enable_async_collective_fusion=true --xla_tpu_enable_async_collective_fusion_fuse_all_gather=true --xla_tpu_enable_async_collective_fusion_multiple_steps=true --xla_tpu_overlap_compute_collective_tc=true --xla_enable_async_all_gather=true"
+#   os.environ["LIBTPU_INIT_ARGS"] = os.environ.get("LIBTPU_INIT_ARGS", "") + " --xla_tpu_enable_data_parallel_all_reduce_opt=true --xla_tpu_data_parallel_opt_different_sized_ops=true --xla_tpu_enable_async_collective_fusion=true --xla_tpu_enable_async_collective_fusion_fuse_all_gather=true --xla_tpu_enable_async_collective_fusion_multiple_steps=true --xla_tpu_overlap_compute_collective_tc=true --xla_enable_async_all_gather=true"
   prefill_engines = prefill_engines if prefill_engines else []
   generate_engines = generate_engines if generate_engines else []
   prefill_params = prefill_params if prefill_params else []
@@ -129,7 +129,7 @@ def initialize_prefill_jit_cache(
         prefill_idx,
         length,
     )
-    compiled = lowered.compile()
+    compiled = lowered.compile(compiler_options=XLAFlags)
     logging.info(
         "---------Prefill engine %d compiled for prefill length %d.---------",
         prefill_idx,
@@ -196,8 +196,6 @@ def initialize_insert_generate_jit_cache(
         true_length=true_length,
     )
 
-    XLAFlags = dict[str, bool | int | float | str]
-
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
         prefix=prefill, decode_state=decode_state, slot=1
     )
@@ -206,7 +204,7 @@ def initialize_insert_generate_jit_cache(
         generate_idx,
         length,
     )
-    compiled = lowered.compile()
+    compiled = lowered.compile(compiler_options=XLAFlags)
 
     logging.info(
         "---------Generate engine %d compiled for insert length %d.---------",
@@ -230,7 +228,7 @@ def initialize_insert_generate_jit_cache(
         generate_idx,
     )
 
-    compiled = lowered.compile()
+    compiled = lowered.compile(compiler_options=XLAFlags)
     logging.info(
         "---------Generate engine %d compiled.---------",
         generate_idx,
