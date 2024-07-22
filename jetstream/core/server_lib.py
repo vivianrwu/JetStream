@@ -149,6 +149,7 @@ def run(
   generate_engines = engines.generate_engines + engines.interleaved_engines
   prefill_params = prefill_params + shared_params
   generate_params = generate_params + shared_params
+  jax.config.update("jax_compilation_cache_dir", "gs://vivianrwu-jax-cache")
 
   if prefill_engines is None:
     prefill_engines = []
