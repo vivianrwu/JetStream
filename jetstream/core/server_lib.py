@@ -212,7 +212,7 @@ def run(
     )
     thread.run()
 
-  jax.config.update("jax_compilation_cache_dir", "gs://vivianrwu-jax-cache")
+  jax._src.config.update("jax_compilation_cache_dir", "gs://vivianrwu-jax-cache")
 
   return jetstream_server
 
