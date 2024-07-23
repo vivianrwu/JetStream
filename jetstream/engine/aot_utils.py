@@ -166,7 +166,7 @@ def initialize_prefill_jit_cache(
 
     lowered = jax.jit(
         prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
-        in_shardings=(prefill_param_layouts, None, None, None)
+        in_shardings=(prefill_param_layouts, None, None, None),
         out_shardings=(
             prefill_engine.get_prefix_destination_sharding(),
             prefill_engine.replicated_sharding,
