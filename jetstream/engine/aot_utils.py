@@ -107,9 +107,6 @@ def get_optimal_prefill_layouts(
     layouts = DLL.AUTO
     prefill_params = jax.tree.map(make_shaped_array, prefill_params)
 
-    prefill_param_layouts = get_optimal_prefill_layouts(
-        prefill_engine, prefill_params
-    )
     prefill_out_layouts = (
         jax.tree.map(
             lambda s: Layout(layouts, s),
