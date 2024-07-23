@@ -16,6 +16,7 @@
 
 import jax
 import jax.numpy as jnp
+from jax.experimental import layout as jax_layout
 import concurrent.futures
 from typing import Any, Optional, cast
 import logging
@@ -32,6 +33,17 @@ XLAFlags = frozendict.frozendict({
     "xla_enable_async_all_gather": "true",
 })
 
+DLL = jax_layout.DeviceLocalLayout
+Layout = jax_layout.Layout
+
+def make_shaped_array(
+    t: Any, sharding: None | Any = None
+):
+    if hasattr(t, 'sharding'):
+        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=t.sharding)
+    else:
+        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=sharding)
+
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
     generate_engines: Optional[list[engine_api.JetStreamEngine]] = None,
@@ -47,7 +59,6 @@ def layout_params_and_compile_executables(
       generate_params: Generate only params.
   """
 
-#   os.environ["LIBTPU_INIT_ARGS"] = os.environ.get("LIBTPU_INIT_ARGS", "") + " --xla_tpu_enable_data_parallel_all_reduce_opt=true --xla_tpu_data_parallel_opt_different_sized_ops=true --xla_tpu_enable_async_collective_fusion=true --xla_tpu_enable_async_collective_fusion_fuse_all_gather=true --xla_tpu_enable_async_collective_fusion_multiple_steps=true --xla_tpu_overlap_compute_collective_tc=true --xla_enable_async_all_gather=true"
   prefill_engines = prefill_engines if prefill_engines else []
   generate_engines = generate_engines if generate_engines else []
   prefill_params = prefill_params if prefill_params else []
@@ -69,24 +80,59 @@ def layout_params_and_compile_executables(
     )
     prefill_executables.append(prefill_executable)
 
-  for i, ge in enumerate(generate_engines):
-    insert_executable, generate_executable = (
-        initialize_insert_generate_jit_cache(
-            prefill_engine=any_prefill_engine,
-            generate_engine=ge,
-            prefill_params=any_prefill_params,
-            generate_params=generate_params[i],
-            generate_idx=i,
-        )
-    )
-    inserts_generate_executables.append(
-        [insert_executable, generate_executable]
-    )
+#   for i, ge in enumerate(generate_engines):
+#     insert_executable, generate_executable = (
+#         initialize_insert_generate_jit_cache(
+#             prefill_engine=any_prefill_engine,
+#             generate_engine=ge,
+#             prefill_params=any_prefill_params,
+#             generate_params=generate_params[i],
+#             generate_idx=i,
+#         )
+#     )
+#     inserts_generate_executables.append(
+#         [insert_executable, generate_executable]
+#     )
 
-  if prefill_executables and inserts_generate_executables:
+#   if prefill_executables and inserts_generate_executables:
+  if prefill_executables:
     return True
   return False
 
+
+def get_optimal_prefill_layouts(
+    prefill_engine: engine_api.JetStreamEngine,
+    prefill_params: Any,
+):
+    layouts = DLL.AUTO
+    prefill_params = jax.tree.map(make_shaped_array, prefill_params)
+
+    prefill_param_layouts = get_optimal_prefill_layouts(
+        prefill_engine, prefill_params
+    )
+    prefill_out_layouts = (
+        jax.tree.map(
+            lambda s: Layout(layouts, s),
+            prefill_engine.get_prefix_destination_sharding(),
+        ),
+        Layout(layouts, prefill_engine.replicated_sharding),
+    )
+
+    padded_tokens, true_length = jnp.ones((prefill_engine.max_prefill_length), dtype="int32"), prefill_engine.max_prefill_length
+
+    prefill_with_layout = jax.jit(
+        prefill_engine._downstream_engine.prefill,
+        in_shardings=Layout(layouts),
+        out_shardings=prefill_out_layouts,
+    )
+    lowered_prefill = prefill_with_layout.lower(
+        prefill_params, padded_tokens, true_length
+    )
+    compiled_prefill = lowered_prefill.compile(
+        compiler_options=XLAFlags
+    )
+    arg_layouts, _ = compiled_prefill.input_layouts()
+    return arg_layouts[0]
 
 def initialize_prefill_jit_cache(
     *,
@@ -113,14 +159,20 @@ def initialize_prefill_jit_cache(
   if prefill_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
+  param_shapes = jax.tree.map(make_shaped_array, prefill_params)
+
   def compile_prefill(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
     lowered = jax.jit(
         prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
-        out_shardings=prefill_engine.get_prefix_destination_sharding(),
+        in_shardings=(prefill_param_layouts, None, None, None)
+        out_shardings=(
+            prefill_engine.get_prefix_destination_sharding(),
+            prefill_engine.replicated_sharding,
+        ),
     ).lower(
-        params=prefill_params,
+        params=param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
@@ -175,6 +227,15 @@ def initialize_insert_generate_jit_cache(
       generate_idx: Which generate engine it is.
   """
 
+  layouts = Layout(DLL.AUTO)
+  decode_state = generate_engine.init_decode_state()
+  decode_state_shapes = jax.tree.map(make_shaped_array, decode_state)
+
+  prefill_param_shapes = jax.tree.map(make_shaped_array, prefill_params)
+  generate_param_shapes = jax.tree.map(make_shaped_array, generate_params)
+
+  
+
   prefill_buckets = token_utils.DEFAULT_PREFILL_BUCKETS
   prefill_buckets = [
       bucket
@@ -185,67 +246,144 @@ def initialize_insert_generate_jit_cache(
   if generate_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(generate_engine.max_prefill_length)
 
-  decode_state = generate_engine.init_decode_state()
+#   decode_state = generate_engine.decode_state
 
   def compile_insert(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
     prefill, _ = prefill_engine._downstream_engine.prefill(  # pylint: disable=protected-access
-        params=prefill_params,
+        params=prefill_param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
 
-    lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
-        prefix=prefill, decode_state=decode_state, slot=1
+    slot_shape = jax.ShapeDtypeStruct(
+        (),
+        jnp.int32,
+        sharding=generate_engine.replicated_sharding,
     )
+
+    insert_with_layout = jax.jit(
+        generate_engine._downstream_engine.insert,
+        in_shardings=(None, decode_state_layouts, None, None),
+        out_shardings=decode_state_layouts,
+        donate_argnums=(1,),
+    )
+    insert_lowered = insert_with_layout.lower(
+        prefill, decode_state_shapes, slot_shape
+    )
+
+    # lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
+    #     prefix=prefill, decode_state=decode_state, slot=slot_shape
+    # )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
         generate_idx,
         length,
     )
-    compiled = lowered.compile(compiler_options=XLAFlags)
+    # compiled = lowered.compile(compiler_options=XLAFlags)
 
+    insert_executable = insert_lowered.compile(
+        compiler_options=XLAFlags
+    )
     logging.info(
         "---------Generate engine %d compiled for insert length %d.---------",
         generate_idx,
         length,
     )
-    return compiled
+    return insert_executable
 
-  def compile_generate():
+  def compile_generate_and_get_layouts(
+    generate_engine: engine_api.JetStreamEngine,
+    generate_params: Any,
+    decode_state: Optional[Any] = None,
+  ):
 
-    logging.info(
-        "---------Generate compilation %d begun.---------", generate_idx
+    param_layout = Layout(DLL.AUTO)
+    decode_state_layout = Layout(DLL.AUTO)
+
+    generate_out_layouts = (
+        jax.tree.map(
+            lambda s: Layout(decode_state_layout.device_local_layout, s),
+            generate_engine.get_decode_state_sharding(),
+        ),
+        Layout(
+            decode_state_layout.device_local_layout,
+            generate_engine.replicated_sharding,
+        ),
+    )
+    generate_with_layout = jax.jit(
+        generate_engine._downstream_engine.generate,
+        in_shardings=(param_layout, decode_state_layout),
+        out_shardings=generate_out_layouts,
+        donate_argnums=(1,),
+    )
+    lowered_generate = generate_with_layout.lower(generate_params, decode_state)
+
+    compiled_generate = lowered_generate.compile(
+        compiler_options=XLAFlags
     )
 
-    lowered = jax.jit(generate_engine._downstream_engine.generate).lower(  # pylint: disable=protected-access
-        params=generate_params,
-        decode_state=decode_state,
+    arg_layouts, _ = compiled_generate.input_layouts()  # pylint:disable = protected-access
+    return compiled_generate, arg_layouts[0], arg_layouts[1], generate_out_layouts
+
+
+    # logging.info(
+    #     "---------Generate compilation %d begun.---------", generate_idx
+    # )
+
+    # lowered = jax.jit(generate_engine._downstream_engine.generate).lower(  # pylint: disable=protected-access
+    #     params=generate_params,
+    #     decode_state=decode_state,
+    # )
+    # logging.info(
+    #     "---------Generate engine %d lowered.---------",
+    #     generate_idx,
+    # )
+
+    # compiled = lowered.compile(compiler_options=XLAFlags)
+    # logging.info(
+    #     "---------Generate engine %d compiled.---------",
+    #     generate_idx,
+    # )
+
+    # logging.info(
+    #     "---------Generate compilation %d complete.---------", generate_idx
+    # )
+
+    # return compiled
+
+  def compile_init_decode_state():
+    init_decode_state_with_layout = jax.jit(
+        generate_engine.init_decode_state,
+        in_shardings=layouts,
+        out_shardings=decode_state_layouts,
     )
+    lowered = init_decode_state_with_layout.lower()
+    executable = lowered.compile(compiler_options=XLAFlags)
     logging.info(
-        "---------Generate engine %d lowered.---------",
+        '---------Generate engine %d compiled init decode state.---------',
         generate_idx,
     )
-
-    compiled = lowered.compile(compiler_options=XLAFlags)
-    logging.info(
-        "---------Generate engine %d compiled.---------",
-        generate_idx,
-    )
-
-    logging.info(
-        "---------Generate compilation %d complete.---------", generate_idx
-    )
-
-    return compiled
+    return executable
 
   logging.info(
       "---------Insertion generation compilation %d begun.---------",
       generate_idx,
   )
 
-  generate_executable = compile_generate()
+  (
+      generate_executable,
+      param_layouts,
+      decode_state_layouts,
+      generate_out_layouts,
+  ) = compile_generate_and_get_layouts(
+      generate_engine,
+      generate_param_shapes,
+      decode_state_shapes,
+  )
+
+#   generate_executable = compile_generate()
   logging.info(
       "---------Generate engine %d compiled generation step.---------",
       generate_idx,
@@ -256,12 +394,14 @@ def initialize_insert_generate_jit_cache(
       max_workers=len(prefill_buckets)
   ) as executor:
     insert_executable = list(executor.map(compile_insert, prefill_buckets))
+    init_decode_state_executable = executor.submit(compile_init_decode_state)
 
   insert_executable = {
       k: cast(jax.stages.Compiled, e)
       for k, e in zip(prefill_buckets, insert_executable)
   }
   generate_engine.insert_executable = insert_executable
+  generate_engine.init_decode_state_executable = init_decode_state_executable
   generate_engine.warm = True
 
   logging.info(

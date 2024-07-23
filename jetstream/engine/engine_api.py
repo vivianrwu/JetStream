@@ -262,6 +262,8 @@ class JetStreamEngine(Engine):
     self._padded_token_length = None
 
     self.warm = False
+    self._mesh = None
+    self.init_decode_state_executable = None
 
   def prefill(
       self,
@@ -346,3 +348,11 @@ class JetStreamEngine(Engine):
 
   def set_padded_token_length(self, padded_token_length: int):
     self.padded_token_length = padded_token_length
+
+  def replicated_sharding(self) -> jax.sharding.NamedSharding:
+    """Returns sharding to specify replication of a single object."""
+    self._mesh = self.mesh
+    return jax.sharding.NamedSharding(self._mesh, jax.sharding.PartitionSpec())
+
+  def get_decode_state_sharding(self) -> Any:
+    return self.replicated_sharding
