@@ -159,6 +159,10 @@ def initialize_prefill_jit_cache(
   if prefill_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
+  prefill_param_layouts = get_optimal_prefill_layouts(
+    prefill_engine, prefill_params
+  )
+
   param_shapes = jax.tree.map(make_shaped_array, prefill_params)
 
   def compile_prefill(length):
