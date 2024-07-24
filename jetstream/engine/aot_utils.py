@@ -185,7 +185,7 @@ def initialize_prefill_jit_cache(
     #         prefill_engine.replicated_sharding,
     #     ),
     # )
-    prefill_with_layout, _ = jax.jit(
+    prefill_with_layout = jax.jit(
         prefill_engine._downstream_engine.prefill,
         in_shardings=Layout(layouts),
         out_shardings=prefill_out_layouts,
