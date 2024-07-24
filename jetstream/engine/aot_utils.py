@@ -104,35 +104,35 @@ def get_optimal_prefill_layouts(
     prefill_engine: engine_api.JetStreamEngine,
     prefill_params: Any,
 ):
-    # layouts = DLL.AUTO
-    # prefill_params = jax.tree.map(make_shaped_array, prefill_params)
+    layouts = DLL.AUTO
+    prefill_params = jax.tree.map(make_shaped_array, prefill_params)
 
-    # prefill_out_layouts = (
-    #     jax.tree.map(
-    #         lambda s: Layout(layouts, s),
-    #         prefill_engine.get_prefix_destination_sharding(),
-    #     ),
-    #     Layout(layouts, prefill_engine.replicated_sharding),
-    # )
+    prefill_out_layouts = (
+        jax.tree.map(
+            lambda s: Layout(layouts, s),
+            prefill_engine.get_prefix_destination_sharding(),
+        ),
+        Layout(layouts, prefill_engine.replicated_sharding),
+    )
 
     padded_tokens, true_length = jnp.ones((prefill_engine.max_prefill_length), dtype="int32"), prefill_engine.max_prefill_length
 
     prefill_with_layout = jax.jit(
         prefill_engine._downstream_engine.prefill,
+        in_shardings=Layout(layouts),
+        out_shardings=prefill_out_layouts,
     )
     lowered_prefill = prefill_with_layout.lower(
         params=prefill_params, 
-        padded_tokens=padded_tokens,
-        true_length=true_length,
-        _in_layout=DLL.AUTO,
-        _out_layout=DLL.AUTO,
+        padded_tokens=padded_tokens, 
+        true_length=true_length
     )
     compiled_prefill = lowered_prefill.compile(
         compiler_options=XLAFlags
     )
-    _, kw_layouts = compiled_prefill._input_layouts()
-    logging.info("arg_layouts is %s", kw_layouts)
-    return kw_layouts['params']
+    arg_layouts, _ = compiled_prefill.input_layouts()
+    logging.info("arg_layouts is %s", arg_layouts)
+    return arg_layouts
 
 def initialize_prefill_jit_cache(
     *,
@@ -159,27 +159,49 @@ def initialize_prefill_jit_cache(
   if prefill_engine.max_prefill_length not in prefill_buckets:
     prefill_buckets.append(prefill_engine.max_prefill_length)
 
-  prefill_param_layouts = get_optimal_prefill_layouts(
-    prefill_engine, prefill_params
-  )
+#   prefill_param_layouts = get_optimal_prefill_layouts(
+#     prefill_engine, prefill_params
+#   )
+
+  layouts = DLL.AUTO
+  prefill_out_layouts = (
+    jax.tree.map(
+        lambda s: Layout(layouts, s),
+        prefill_engine.get_prefix_destination_sharding(),
+    ),
+    Layout(layouts, prefill_engine.replicated_sharding),
+)
 
   param_shapes = jax.tree.map(make_shaped_array, prefill_params)
 
   def compile_prefill(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
-    prefill = jax.jit(
-        prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
-        out_shardings=(
+    prefill_out_layouts = (
+        jax.tree.map(
+            lambda s: Layout(layouts, s),
             prefill_engine.get_prefix_destination_sharding(),
-            prefill_engine.replicated_sharding,
         ),
+        Layout(layouts, prefill_engine.replicated_sharding),
     )
-    lowered = prefill.lower(
+
+    # prefill = jax.jit(
+    #     prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
+    #     in_shardings=(prefill_param_layouts, None, None, None),
+    #     out_shardings=(
+    #         prefill_engine.get_prefix_destination_sharding(),
+    #         prefill_engine.replicated_sharding,
+    #     ),
+    # )
+    prefill_with_layout = jax.jit(
+        prefill_engine._downstream_engine.prefill,
+        in_shardings=Layout(layouts),
+        out_shardings=prefill_out_layouts,
+    )
+    lowered = prefill_with_layout.lower(
         params=param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
-        _in_layouts=(prefill_param_layouts, None, None, None),
     )
     logging.info(
         "---------Prefill engine %d lowered for prefill length %d.---------",
