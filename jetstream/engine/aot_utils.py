@@ -124,7 +124,7 @@ def get_optimal_prefill_layouts(
         params=prefill_params, 
         padded_tokens=padded_tokens,
         true_length=true_length,
-        _in_layout=DLL.AUTO
+        _in_layout=DLL.AUTO,
         _out_layout=DLL.AUTO,
     )
     compiled_prefill = lowered_prefill.compile(
