@@ -349,6 +349,7 @@ class JetStreamEngine(Engine):
   def set_padded_token_length(self, padded_token_length: int):
     self.padded_token_length = padded_token_length
 
+  @property
   def replicated_sharding(self) -> jax.sharding.NamedSharding:
     """Returns sharding to specify replication of a single object."""
     self._mesh = self.mesh
