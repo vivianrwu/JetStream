@@ -267,9 +267,10 @@ def initialize_insert_generate_jit_cache(
 
   def compile_insert(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
+    padded_tokens = jax.ShapeDtypeStruct(shape=(length,), dtype=jnp.int32)
 
     prefill, _ = prefill_engine._downstream_engine.prefill(  # pylint: disable=protected-access
-        params=prefill_params,
+        params=prefill_param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
@@ -287,7 +288,7 @@ def initialize_insert_generate_jit_cache(
         donate_argnums=(1,),
     )
     insert_lowered = insert_with_layout.lower(
-        prefill, decode_state, slot_shape
+        prefill, decode_state_shapes, slot_shape
     )
 
     # lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
