@@ -282,7 +282,7 @@ def initialize_insert_generate_jit_cache(
 
     insert_with_layout = jax.jit(
         generate_engine._downstream_engine.insert,
-        in_shardings=(None, decode_state_layouts, None, None),
+        in_shardings=(None, decode_state_layouts, None),
         out_shardings=decode_state_layouts,
         donate_argnums=(1,),
     )
