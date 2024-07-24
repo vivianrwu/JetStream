@@ -122,10 +122,10 @@ def get_optimal_prefill_layouts(
     )
     lowered_prefill = prefill_with_layout.lower(
         params=prefill_params, 
-        padded_tokens=padded_tokens, 
+        padded_tokens=padded_tokens,
         true_length=true_length,
-        _in_layout=layout.AUTO,
-        _out_layout=layout.AUTO,
+        _in_layout=DLL.AUTO
+        _out_layout=DLL.AUTO,
     )
     compiled_prefill = lowered_prefill.compile(
         compiler_options=XLAFlags
