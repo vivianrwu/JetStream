@@ -40,9 +40,9 @@ def make_shaped_array(
     t: Any, sharding: None | Any = None
 ):
     if hasattr(t, 'sharding'):
-        return jax.ShapeDtypeStruct(t.shape, "int32", sharding=t.sharding)
+        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=t.sharding)
     else:
-        return jax.ShapeDtypeStruct(t.shape, "int32", sharding=sharding)
+        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=sharding)
 
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
@@ -269,7 +269,7 @@ def initialize_insert_generate_jit_cache(
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
     prefill, _ = prefill_engine._downstream_engine.prefill(  # pylint: disable=protected-access
-        params=prefill_param_shapes,
+        params=param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
     )
@@ -287,7 +287,7 @@ def initialize_insert_generate_jit_cache(
         donate_argnums=(1,),
     )
     insert_lowered = insert_with_layout.lower(
-        prefill, decode_state_shapes, slot_shape
+        prefill, decode_state, slot_shape
     )
 
     # lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
