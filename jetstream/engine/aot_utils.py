@@ -131,7 +131,8 @@ def get_optimal_prefill_layouts(
         compiler_options=XLAFlags
     )
     arg_layouts, _ = compiled_prefill.input_layouts()
-    return arg_layouts[0]
+    logging.info("arg_layouts is %s", arg_layouts)
+    return arg_layouts
 
 def initialize_prefill_jit_cache(
     *,
