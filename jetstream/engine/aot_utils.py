@@ -168,14 +168,15 @@ def initialize_prefill_jit_cache(
   def compile_prefill(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
-    lowered = jax.jit(
+    prefill = jax.jit(
         prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
         in_shardings=(prefill_param_layouts, None, None, None),
         out_shardings=(
             prefill_engine.get_prefix_destination_sharding(),
             prefill_engine.replicated_sharding,
         ),
-    ).lower(
+    )
+    lowered = prefill.lower(
         params=param_shapes,
         padded_tokens=padded_tokens,
         true_length=true_length,
