@@ -40,9 +40,9 @@ def make_shaped_array(
     t: Any, sharding: None | Any = None
 ):
     if hasattr(t, 'sharding'):
-        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=t.sharding)
+        return jax.ShapeDtypeStruct(t.shape, "int32", sharding=t.sharding)
     else:
-        return jax.ShapeDtypeStruct(t.shape, t.dtype, sharding=sharding)
+        return jax.ShapeDtypeStruct(t.shape, "int32", sharding=sharding)
 
 def layout_params_and_compile_executables(
     prefill_engines: Optional[list[engine_api.JetStreamEngine]] = None,
