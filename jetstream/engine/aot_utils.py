@@ -80,22 +80,22 @@ def layout_params_and_compile_executables(
     )
     prefill_executables.append(prefill_executable)
 
-#   for i, ge in enumerate(generate_engines):
-#     insert_executable, generate_executable = (
-#         initialize_insert_generate_jit_cache(
-#             prefill_engine=any_prefill_engine,
-#             generate_engine=ge,
-#             prefill_params=any_prefill_params,
-#             generate_params=generate_params[i],
-#             generate_idx=i,
-#         )
-#     )
-#     inserts_generate_executables.append(
-#         [insert_executable, generate_executable]
-#     )
+  for i, ge in enumerate(generate_engines):
+    insert_executable, generate_executable = (
+        initialize_insert_generate_jit_cache(
+            prefill_engine=any_prefill_engine,
+            generate_engine=ge,
+            prefill_params=any_prefill_params,
+            generate_params=generate_params[i],
+            generate_idx=i,
+        )
+    )
+    inserts_generate_executables.append(
+        [insert_executable, generate_executable]
+    )
 
-#   if prefill_executables and inserts_generate_executables:
-  if prefill_executables:
+  if prefill_executables and inserts_generate_executables:
+#   if prefill_executables:
     return True
   return False
 
@@ -177,14 +177,6 @@ def initialize_prefill_jit_cache(
   def compile_prefill(length):
     padded_tokens, true_length = jnp.ones((length), dtype="int32"), length
 
-    prefill_out_layouts = (
-        jax.tree.map(
-            lambda s: Layout(layouts, s),
-            prefill_engine.get_prefix_destination_sharding(),
-        ),
-        Layout(layouts, prefill_engine.replicated_sharding),
-    )
-
     # prefill = jax.jit(
     #     prefill_engine._downstream_engine.prefill,  # pylint: disable=protected-access
     #     in_shardings=(prefill_param_layouts, None, None, None),
@@ -193,7 +185,7 @@ def initialize_prefill_jit_cache(
     #         prefill_engine.replicated_sharding,
     #     ),
     # )
-    prefill_with_layout = jax.jit(
+    prefill_with_layout, _ = jax.jit(
         prefill_engine._downstream_engine.prefill,
         in_shardings=Layout(layouts),
         out_shardings=prefill_out_layouts,
@@ -254,14 +246,12 @@ def initialize_insert_generate_jit_cache(
       generate_idx: Which generate engine it is.
   """
 
-  layouts = Layout(DLL.AUTO)
+#   layouts = Layout(DLL.AUTO)
   decode_state = generate_engine.init_decode_state()
   decode_state_shapes = jax.tree.map(make_shaped_array, decode_state)
 
   prefill_param_shapes = jax.tree.map(make_shaped_array, prefill_params)
   generate_param_shapes = jax.tree.map(make_shaped_array, generate_params)
-
-  
 
   prefill_buckets = token_utils.DEFAULT_PREFILL_BUCKETS
   prefill_buckets = [
@@ -352,6 +342,8 @@ def initialize_insert_generate_jit_cache(
     )
 
     arg_layouts, _ = compiled_generate.input_layouts()  # pylint:disable = protected-access
+    logging.info("arg_layouts for generate:")
+    logging.info(arg_layouts)
     return compiled_generate, arg_layouts[0], arg_layouts[1], generate_out_layouts
 
 
