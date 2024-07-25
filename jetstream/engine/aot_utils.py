@@ -58,7 +58,7 @@ def layout_params_and_compile_executables(
     prefill_executables.append(prefill_executable)
 
   for i, ge in enumerate(generate_engines):
-    insert_executable, generate_executable = (
+    insert_executable, generate_executable, init_decode_state_executable = (
         initialize_insert_generate_jit_cache(
             prefill_engine=any_prefill_engine,
             generate_engine=ge,
@@ -68,7 +68,7 @@ def layout_params_and_compile_executables(
         )
     )
     inserts_generate_executables.append(
-        [insert_executable, generate_executable]
+        [insert_executable, generate_executable, init_decode_state_executable]
     )
 
   if prefill_executables and inserts_generate_executables:
@@ -185,7 +185,7 @@ def initialize_insert_generate_jit_cache(
     )
 
     lowered = jax.jit(generate_engine._downstream_engine.insert).lower(  # pylint: disable=protected-access
-        prefix=prefill, decode_state=decode_state, slot=1
+        prefix=prefill, decode_state=decode_state, slot=0
     )
     logging.info(
         "---------Generate engine %d lowered for insert length %d.---------",
@@ -233,6 +233,18 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
+  def compile_init_decode_state():
+    init_decode_state = jax.jit(
+        generate_engine.init_decode_state
+    )
+    lowered = init_decode_state.lower()
+    compiled = lowered.compile()
+    logging.info(
+        '---------Generate engine %d compiled init decode state.---------',
+        generate_idx,
+    )
+    return compiled
+
   generate_executable = compile_generate()
   logging.info(
       "---------Generate engine %d compiled generation step.---------",
@@ -244,12 +256,17 @@ def initialize_insert_generate_jit_cache(
       max_workers=len(prefill_buckets)
   ) as executor:
     insert_executable = list(executor.map(compile_insert, prefill_buckets))
+    init_decode_state_executable = executor.submit(compile_init_decode_state)
 
   insert_executable = {
       k: cast(jax.stages.Compiled, e)
       for k, e in zip(prefill_buckets, insert_executable)
   }
   generate_engine.insert_executable = insert_executable
+  
+  init_decode_state_executable = cast(jax.stages.Compiled, init_decode_state_executable.result())
+  generate_engine.init_decode_state_executable = init_decode_state_executable
+
   generate_engine.warm = True
 
   logging.info(
@@ -257,4 +274,4 @@ def initialize_insert_generate_jit_cache(
       generate_idx,
   )
 
-  return insert_executable, generate_executable
+  return insert_executable, generate_executable, init_decode_state_executable
