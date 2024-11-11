@@ -38,7 +38,8 @@ from jetstream.engine import warmup_utils, engine_api
 
 from prometheus_client import start_http_server
 
-_HOST = "[::]"
+# _HOST = "[::]"
+_HOST = "0.0.0.0"
 
 
 class JetStreamServer:
